@@ -132,6 +132,17 @@ class Scratch3PenBlocks {
             this._penSkinId = this.runtime.renderer.createPenSkin();
             this._penDrawableId = this.runtime.renderer.createDrawable(StageLayering.PEN_LAYER);
             this.runtime.renderer.updateDrawableProperties(this._penDrawableId, {skinId: this._penSkinId});
+
+            //added by yj ���ˮӡ��
+            this._watermarkSkinId = this.runtime.renderer.createPenSkin();
+            this._watermarkDrawableId = this.runtime.renderer.createDrawable();
+            this.runtime.renderer.setDrawableOrder(this._watermarkDrawableId, Scratch3PenBlocks.PEN_ORDER);
+            this.runtime.renderer.updateDrawableProperties(this._watermarkDrawableId, { skinId: this._watermarkSkinId });
+
+            this.runtime.penSkinId = this._penSkinId;
+            this.runtime.penDrawableId = this._penDrawableId;
+            this.runtime.watermarkSkinId = this._watermarkSkinId;
+            this.runtime.watermarkDrawableId = this._watermarkDrawableId;
         }
         return this._penSkinId;
     }
@@ -285,6 +296,19 @@ class Scratch3PenBlocks {
             name: 'Pen',
             blockIconURI: blockIconURI,
             blocks: [
+                //added by yj
+                {
+                    opcode: 'print',
+                    blockType: BlockType.COMMAND,
+                    text: 'print [TEXT]',
+                    arguments: {
+                        TEXT: {
+                            type: ArgumentType.STRING,
+                            defaultValue: "Hello world!"
+                        }
+                    }
+                },
+
                 {
                     opcode: 'clear',
                     blockType: BlockType.COMMAND,
@@ -747,6 +771,31 @@ class Scratch3PenBlocks {
         penState.brightness = 100 * hsv.v;
 
         this._updatePenColor(penState);
+    }
+
+    //added by yj
+    print (args, util) {
+        const penAttributes = this._getPenState(util.target).penAttributes;
+        const penSkinId = this._getPenLayerID();
+        const skin = util.target.runtime.renderer._allSkins[penSkinId];
+        var ctx = skin._canvas.getContext("2d");
+        ctx.save();
+        ctx.translate(util.target.runtime.constructor.STAGE_WIDTH/2+ util.target.x, util.target.runtime.constructor.STAGE_HEIGHT/2 - util.target.y + Math.max(12, penAttributes.diameter));
+        ctx.font = 'normal ' + Math.max(12, penAttributes.diameter) + 'px Arial';
+        skin._setAttributes(ctx,penAttributes);
+        ctx.fillStyle = ctx.strokeStyle;
+        ctx.rotate(2 * Math.PI * (util.target.direction - 90) / 360);
+
+        /*if (this._penMode == 'erase') {
+            ctx.globalCompositeOperation = "destination-out";
+        }
+        else {
+            ctx.globalCompositeOperation = "source-over";
+        }*/
+
+        ctx.fillText(args.TEXT, 0, 0);
+        ctx.restore();
+        skin._canvasDirty=true;
     }
 }
 

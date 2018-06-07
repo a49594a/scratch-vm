@@ -1014,7 +1014,8 @@ class VirtualMachine extends EventEmitter {
                                 ${variables.map(v => v.toXML()).join()}
                             </variables>
                             ${workspaceComments.map(c => c.toXML()).join()}
-                            ${this.editingTarget.blocks.toXML(this.editingTarget.comments)}
+                            //by yj
+                            ${this.editingTarget.blocks.toXML(this.editingTarget.comments, false)}
                         </xml>`;
 
         this.emit('workspaceUpdate', {xml: xmlString});

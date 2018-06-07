@@ -823,8 +823,25 @@ class Blocks {
      * @param {object<string, Comment>} comments Map of comments referenced by id
      * @return {string} String of XML representing this object's blocks.
      */
-    toXML (comments) {
+    /*toXML (comments) {
         return this._scripts.map(script => this.blockToXML(script, comments)).join();
+    }*/
+
+    //modified by yj
+    toXML(comments, ctl) {
+        var list = [];
+        for (let i = 0; i < this._scripts.length; i++) {
+            //添加ctl参数，用于在谜题中隐藏控制脚本
+            if (ctl != undefined) {
+                var block = this.getBlock(this._scripts[i]);
+                if (block.opcode == "event_whenbroadcastreceived"
+                    && block.fields.BROADCAST_OPTION
+                    && block.fields.BROADCAST_OPTION.value.substr(0, 1) == "@") continue;
+                if (block.opcode == "procedures_definition") continue;
+            }
+            list.push(this._scripts[i]);
+        }
+        return list.map(script => this.blockToXML(script, comments)).join();
     }
 
     /**

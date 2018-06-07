@@ -30,7 +30,13 @@ class Scratch3DataBlocks {
             data_lengthoflist: this.lengthOfList,
             data_listcontainsitem: this.listContainsItem,
             data_hidelist: this.hideList,
-            data_showlist: this.showList
+            data_showlist: this.showList,
+
+            //added by yj
+            data_savevariable: this.saveVariable,
+            data_loadvariable: this.loadVariable,
+            data_savelist: this.saveList,
+            data_loadlist: this.loadList,
         };
     }
 
@@ -234,6 +240,98 @@ class Scratch3DataBlocks {
      */
     static get LIST_ITEM_LIMIT () {
         return 200000;
+    }
+
+    
+    //added by yj
+    saveVariable (args, util) {
+        var variable = util.target.lookupOrCreateVariable(args.VARIABLE.id, args.VARIABLE.name);
+        var varname = variable.name;
+        var scope = args.LOCATION;
+        var varval = variable.value;
+        var t = new Date().getTime();
+        var s = Sha1.hash(encodeURIComponent("aerfaying" + Blockey.INIT_DATA.PROJECT.model.id + "var" + varname + varval + scope + t).toLowerCase());
+        return new Promise(resolve => {
+            $.ajax({
+                url: "/MProjectApi/SaveVariable",
+                data: { id: Blockey.INIT_DATA.PROJECT.model.id, type: 'var', name: varname, value: varval, scope: scope, t: t, s: s },
+                type: "POST"
+            }).done(function (response) {
+                if (response.status) {
+                    Blockey.bonusTips.show(response.bonusTips);
+                }
+                else if (!response.status && response.message) {
+                    Blockey.AlertView.msg($("#alert-view"), { alert: "error", msg: response.message });
+                }
+                resolve();
+            });
+        });
+    }
+
+    loadVariable (args, util) {
+        var variable = util.target.lookupOrCreateVariable(args.VARIABLE.id, args.VARIABLE.name);
+        var varname = variable.name;
+        var scope = args.LOCATION;
+        return new Promise(resolve => {
+            $.ajax({
+                url: "/MProjectApi/LoadVariable",
+                data: { id: Blockey.INIT_DATA.PROJECT.model.id, type: 'var', name: varname, scope: scope },
+                type: "POST"
+            }).done(function (response) {
+                if (response.status) {
+                    variable.value = response.value;
+                }
+                else if (!response.status && response.message) {
+                    Blockey.AlertView.msg($("#alert-view"), { alert: "error", msg: response.message });
+                }
+                resolve();
+            });
+        });
+    }
+
+    saveList (args, util) {
+        var variable = util.target.lookupOrCreateVariable(args.LIST.id, args.LIST.name);
+        var varname = variable.name;
+        var scope = args.LOCATION;
+        var varval = JSON.stringify(variable.value);
+        var t = new Date().getTime();
+        var s = Sha1.hash(encodeURIComponent("aerfaying" + Blockey.INIT_DATA.PROJECT.model.id + "list" + varname + varval + scope + t).toLowerCase());
+        return new Promise(resolve => {
+            $.ajax({
+                url: "/MProjectApi/SaveVariable",
+                data: { id: Blockey.INIT_DATA.PROJECT.model.id, type: 'list', name: varname, value: varval, scope: scope, t: t, s: s },
+                type: "POST"
+            }).done(function (response) {
+                if (response.status) {
+                    Blockey.bonusTips.show(response.bonusTips);
+                }
+                else if (!response.status && response.message) {
+                    Blockey.AlertView.msg($("#alert-view"), { alert: "error", msg: response.message });
+                }
+                resolve();
+            });
+        });
+    }
+
+    loadList (args, util) {
+        var variable = util.target.lookupOrCreateVariable(args.LIST.id, args.LIST.name);
+        var varname = variable.name;
+        var scope = args.LOCATION;
+        return new Promise(resolve => {
+            $.ajax({
+                url: "/MProjectApi/LoadVariable",
+                data: { id: Blockey.INIT_DATA.PROJECT.model.id, type: 'list', name: varname, scope: scope },
+                type: "POST"
+            }).done(function (response) {
+                if (response.status) {
+                    variable.value = JSON.parse(response.value);
+                }
+                else if (!response.status && response.message) {
+                    Blockey.AlertView.msg($("#alert-view"), { alert: "error", msg: response.message });
+                }
+                resolve();
+            });
+        });
     }
 }
 

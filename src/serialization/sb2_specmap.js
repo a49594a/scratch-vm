@@ -42,6 +42,143 @@ const Variable = require('../engine/variable');
  * @type {object.<SB2SpecMap_blockInfo>}
  */
 const specMap = {
+    //add by yj
+    'Puzzle.convertPaintToWatermark': {
+        opcode: 'puzzle_convertpainttowatermark',
+        argMap: []
+    },
+    'Puzzle.showWatermark': {
+        opcode: 'puzzle_showwatermark',
+        argMap: []
+    },
+    'Puzzle.hideWatermark': {
+        opcode: 'puzzle_hidewatermark',
+        argMap: []
+    },
+    'Puzzle.isPaintSameAsWatermark': {
+        opcode: 'puzzle_ispaintsameaswatermark',
+        argMap: []
+    },
+    'Puzzle.stepInterval': {
+        opcode: 'puzzle_stepinterval',
+        argMap: []
+    },
+    'Puzzle.setResolved': {
+        opcode: 'puzzle_setresolved',
+        argMap: []
+    },
+    'Puzzle.setSpriteTracker': {
+        opcode: 'puzzle_setspritetracker',
+        argMap: [
+            {
+                type: 'input',
+                inputOp: 'text',
+                inputName: 'TRACKER'
+            }
+        ]
+    },
+    'Puzzle\u001fconvertPaintToWatermark': {
+        opcode: 'puzzle_convertpainttowatermark',
+        argMap: []
+    },
+    'Puzzle\u001fshowWatermark': {
+        opcode: 'puzzle_showwatermark',
+        argMap: []
+    },
+    'Puzzle\u001fhideWatermark': {
+        opcode: 'puzzle_hidewatermark',
+        argMap: []
+    },
+    'Puzzle\u001fisPaintSameAsWatermark': {
+        opcode: 'puzzle_ispaintsameaswatermark',
+        argMap: []
+    },
+    'Puzzle\u001fstepInterval': {
+        opcode: 'puzzle_stepinterval',
+        argMap: []
+    },
+    'Puzzle\u001fsetResolved': {
+        opcode: 'puzzle_setresolved',
+        argMap: []
+    },
+    'Puzzle\u001fsetSpriteTracker': {
+        opcode: 'puzzle_setspritetracker',
+        argMap: [
+            {
+                type: 'input',
+                inputOp: 'text',
+                inputName: 'TRACKER'
+            }
+        ]
+    },
+    'print:': {
+        opcode: 'pen.print',
+        argMap: [
+            {
+                type: 'input',
+                inputOp: 'text',
+                inputName: 'TEXT'
+            }
+        ]
+    },
+    'saveVariable:': {
+        opcode: 'data_savevariable',
+        argMap: [
+            {
+                type: 'field',
+                fieldName: 'VARIABLE',
+                variableType: Variable.SCALAR_TYPE
+            },
+            {
+                type: 'field',
+                fieldName: 'LOCATION'
+            }
+        ]
+    },
+    'loadVariable:': {
+        opcode: 'data_loadvariable',
+        argMap: [
+            {
+                type: 'field',
+                fieldName: 'VARIABLE',
+                variableType: Variable.SCALAR_TYPE
+            },
+            {
+                type: 'field',
+                fieldName: 'LOCATION'
+            }
+        ]
+    },
+    'saveList:': {
+        opcode: 'data_savelist',
+        argMap: [
+            {
+                type: 'field',
+                fieldName: 'LIST',
+                variableType: Variable.LIST_TYPE
+            },
+            {
+                type: 'field',
+                fieldName: 'LOCATION'
+            }
+        ]
+    },
+    'loadList:': {
+        opcode: 'data_loadlist',
+        argMap: [
+            {
+                type: 'field',
+                fieldName: 'LIST',
+                variableType: Variable.LIST_TYPE
+            },
+            {
+                type: 'field',
+                fieldName: 'LOCATION'
+            }
+        ]
+    },
+    //end yj
+
     'forward:': {
         opcode: 'motion_movesteps',
         argMap: [
@@ -1613,6 +1750,67 @@ const addExtensionOp = function (sb2Extension, sb2Opcode, blockInfo) {
     // make a second for projects saved by older versions of the Scratch 2.0 editor
     specMap[`${sb2Extension}.${sb2Opcode}`] = blockInfo;
 };
+
+    //added by yj
+    const community = 'Community';
+    addExtensionOp(community, 'userInfo', {
+        opcode: 'community.getUserInfo',
+        argMap: [
+            {
+                type: 'input',
+                inputOp: 'community.menu.userAttr',
+                inputName: 'USER_ATTR'
+            }
+        ]
+    });
+    addExtensionOp(community, 'isFollower', {
+        opcode: 'community.isFollower',
+        argMap: []
+    });
+    addExtensionOp(community, 'isProjectLover', {
+        opcode: 'community.isProjectLover',
+        argMap: []
+    });
+    addExtensionOp(community, 'openUrl', {
+        opcode: 'community.openUrl',
+        argMap: [
+            {
+                type: 'input',
+                inputOp: 'text',
+                inputName: 'URL'
+            }
+        ]
+    });
+    addExtensionOp(community, 'redirectUrl', {
+        opcode: 'community.redirectUrl',
+        argMap: [
+            {
+                type: 'input',
+                inputOp: 'text',
+                inputName: 'URL'
+            }
+        ]
+    });
+    addExtensionOp(community, 'pay', {
+        opcode: 'community.pay',
+        argMap: [
+            {
+                type: 'input',
+                inputOp: 'math_number',
+                inputName: 'AMOUNT'
+            },
+            {
+                type: 'input',
+                inputOp: 'text',
+                inputName: 'ITEM'
+            }
+        ]
+    });
+    addExtensionOp(community, 'error', {
+        opcode: 'community.getError',
+        argMap: []
+    });
+    //end yj
 
 const weDo2 = 'LEGO WeDo 2.0';
 
