@@ -133,10 +133,10 @@ class Scratch3PenBlocks {
             this._penDrawableId = this.runtime.renderer.createDrawable(StageLayering.PEN_LAYER);
             this.runtime.renderer.updateDrawableProperties(this._penDrawableId, {skinId: this._penSkinId});
 
-            //added by yj ���ˮӡ��
+            //added by yj watermark layer
             this._watermarkSkinId = this.runtime.renderer.createPenSkin();
-            this._watermarkDrawableId = this.runtime.renderer.createDrawable();
-            this.runtime.renderer.setDrawableOrder(this._watermarkDrawableId, Scratch3PenBlocks.PEN_ORDER);
+            this._watermarkDrawableId = this.runtime.renderer.createDrawable(StageLayering.PEN_LAYER);
+            this.runtime.renderer.setDrawableOrder(this._watermarkDrawableId, -Infinity, StageLayering.PEN_LAYER);
             this.runtime.renderer.updateDrawableProperties(this._watermarkDrawableId, { skinId: this._watermarkSkinId });
 
             this.runtime.penSkinId = this._penSkinId;

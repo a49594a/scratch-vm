@@ -34,7 +34,9 @@ const CORE_EXTENSIONS = [
     'operator',
     'procedures',
     'sensing',
-    'sound'
+    'sound',
+    //by yj
+    'puzzle'
 ];
 
 // Adjust script coordinates to account for
