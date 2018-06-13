@@ -21,6 +21,7 @@ Scratch3PuzzleBlocks.prototype.getPrimitives = function () {
         puzzle_showwatermark: this.showWatermark,
         puzzle_hidewatermark: this.hideWatermark,
         puzzle_ispaintsameaswatermark: this.isPaintSameAsWatermark,
+        puzzle_attemptcount: this.attemptCount,
         puzzle_stepinterval: this.stepInterval,
         puzzle_setresolved: this.setResolved,
         puzzle_setspritetracker: this.setSpriteTracker
@@ -105,12 +106,16 @@ Scratch3PuzzleBlocks.prototype.isPaintSameAsWatermark = function (args, util) {
     return (count == 0);
 };
 
+Scratch3PuzzleBlocks.prototype.attemptCount = function (args, util) {
+    return this.runtime.puzzle.attemptCount || 0;
+};
+
 Scratch3PuzzleBlocks.prototype.stepInterval = function (args, util) {
     return this.runtime.puzzle.stepInterval / 1000;
 };
 
 Scratch3PuzzleBlocks.prototype.setResolved = function (args, util) {
-    if(util.runtime.puzzle.setResolved) {
+    if (util.runtime.puzzle.setResolved) {
         util.runtime.puzzle.setResolved();
     }
 };

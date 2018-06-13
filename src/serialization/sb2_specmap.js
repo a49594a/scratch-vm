@@ -59,6 +59,10 @@ const specMap = {
         opcode: 'puzzle_ispaintsameaswatermark',
         argMap: []
     },
+    'Puzzle.attemptCount': {
+        opcode: 'puzzle_attemptcount',
+        argMap: []
+    },
     'Puzzle.stepInterval': {
         opcode: 'puzzle_stepinterval',
         argMap: []
@@ -93,6 +97,10 @@ const specMap = {
         opcode: 'puzzle_ispaintsameaswatermark',
         argMap: []
     },
+    'Puzzle\u001fattemptCount': {
+        opcode: 'puzzle_attemptcount',
+        argMap: []
+    },
     'Puzzle\u001fstepInterval': {
         opcode: 'puzzle_stepinterval',
         argMap: []
@@ -112,7 +120,7 @@ const specMap = {
         ]
     },
     'print:': {
-        opcode: 'pen.print',
+        opcode: 'pen_print',
         argMap: [
             {
                 type: 'input',

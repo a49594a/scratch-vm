@@ -300,7 +300,7 @@ class Scratch3PenBlocks {
                 {
                     opcode: 'print',
                     blockType: BlockType.COMMAND,
-                    text: 'print [TEXT]',
+                    text: '打印[TEXT]',// by yj 'print [TEXT]',
                     arguments: {
                         TEXT: {
                             type: ArgumentType.STRING,
@@ -314,7 +314,7 @@ class Scratch3PenBlocks {
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'pen.clear',
-                        default: 'erase all',
+                        default: '清空',// by yj 'erase all',
                         description: 'erase all pen trails and stamps'
                     })
                 },
@@ -323,7 +323,7 @@ class Scratch3PenBlocks {
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'pen.stamp',
-                        default: 'stamp',
+                        default: '图章',// by yj 'stamp',
                         description: 'render current costume on the background'
                     })
                 },
@@ -332,7 +332,7 @@ class Scratch3PenBlocks {
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'pen.penDown',
-                        default: 'pen down',
+                        default: '落笔',// by yj 'pen down',
                         description: 'start leaving a trail when the sprite moves'
                     })
                 },
@@ -341,7 +341,7 @@ class Scratch3PenBlocks {
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'pen.penUp',
-                        default: 'pen up',
+                        default: '抬笔',// by yj 'pen up',
                         description: 'stop leaving a trail behind the sprite'
                     })
                 },
@@ -350,7 +350,7 @@ class Scratch3PenBlocks {
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'pen.setColor',
-                        default: 'set pen color to [COLOR]',
+                        default: '将画笔颜色设定为[COLOR]',// by yj 'set pen color to [COLOR]',
                         description: 'set the pen color to a particular (RGB) value'
                     }),
                     arguments: {
@@ -404,7 +404,7 @@ class Scratch3PenBlocks {
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'pen.changeSize',
-                        default: 'change pen size by [SIZE]',
+                        default: '将画笔大小增加[SIZE]',// by yj 'change pen size by [SIZE]',
                         description: 'change the diameter of the trail left by a sprite'
                     }),
                     arguments: {
@@ -419,7 +419,7 @@ class Scratch3PenBlocks {
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'pen.setSize',
-                        default: 'set pen size to [SIZE]',
+                        default: '将画笔大小设定为[SIZE]',// by yj 'set pen size to [SIZE]',
                         description: 'set the diameter of a trail left by a sprite'
                     }),
                     arguments: {
