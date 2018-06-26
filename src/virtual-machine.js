@@ -6,6 +6,7 @@ const Buffer = require('buffer').Buffer;
 const centralDispatch = require('./dispatch/central-dispatch');
 const ExtensionManager = require('./extension-support/extension-manager');
 const log = require('./util/log');
+const MathUtil = require('./util/math-util');
 const Runtime = require('./engine/runtime');
 const sb2 = require('./serialization/sb2');
 const sb3 = require('./serialization/sb3');
@@ -262,20 +263,50 @@ class VirtualMachine extends EventEmitter {
 
         // Put everything in a zip file
         zip.file('project.json', projectJson);
-        for (let i = 0; i < soundDescs.length; i++) {
-            const currSound = soundDescs[i];
-            zip.file(currSound.fileName, currSound.fileContent);
-        }
-        for (let i = 0; i < costumeDescs.length; i++) {
-            const currCostume = costumeDescs[i];
-            zip.file(currCostume.fileName, currCostume.fileContent);
-        }
+        this._addFileDescsToZip(soundDescs.concat(costumeDescs), zip);
 
         return zip.generateAsync({
             type: 'blob',
             compression: 'DEFLATE',
             compressionOptions: {
                 level: 6 // Tradeoff between best speed (1) and best compression (9)
+            }
+        });
+    }
+
+    _addFileDescsToZip (fileDescs, zip) {
+        for (let i = 0; i < fileDescs.length; i++) {
+            const currFileDesc = fileDescs[i];
+            zip.file(currFileDesc.fileName, currFileDesc.fileContent);
+        }
+    }
+
+    /**
+     * Exports a sprite in the sprite3 format.
+     * @param {string} targetId ID of the target to export
+     * @param {string=} optZipType Optional type that the resulting
+     * zip should be outputted in. Options are: base64, binarystring,
+     * array, uint8array, arraybuffer, blob, or nodebuffer. Defaults to
+     * blob if argument not provided.
+     * See https://stuk.github.io/jszip/documentation/api_jszip/generate_async.html#type-option
+     * for more information about these options.
+     * @return {object} A generated zip of the sprite and its assets in the format
+     * specified by optZipType or blob by default.
+     */
+    exportSprite (targetId, optZipType) {
+        const soundDescs = serializeSounds(this.runtime, targetId);
+        const costumeDescs = serializeCostumes(this.runtime, targetId);
+        const spriteJson = JSON.stringify(sb3.serialize(this.runtime, targetId));
+
+        const zip = new JSZip();
+        zip.file('sprite.json', spriteJson);
+        this._addFileDescsToZip(soundDescs.concat(costumeDescs), zip);
+
+        return zip.generateAsync({
+            type: typeof optZipType === 'string' ? optZipType : 'blob',
+            compression: 'DEFLATE',
+            compressionOptions: {
+                level: 6
             }
         });
     }
@@ -365,6 +396,10 @@ class VirtualMachine extends EventEmitter {
                 this.editingTarget = targets[1];
             } else {
                 this.editingTarget = targets[0];
+            }
+
+            if (!wholeProject) {
+                this.editingTarget.fixUpVariableReferences();
             }
 
             // Update the VM user's knowledge of targets and blocks on the workspace.
@@ -494,7 +529,7 @@ class VirtualMachine extends EventEmitter {
     duplicateSound (soundIndex) {
         const originalSound = this.editingTarget.getSounds()[soundIndex];
         const clone = Object.assign({}, originalSound);
-        return loadSound(clone, this.runtime).then(() => {
+        return loadSound(clone, this.runtime, this.editingTarget.sprite).then(() => {
             this.editingTarget.addSound(clone, soundIndex + 1);
             this.emitTargetsUpdate();
         });
@@ -524,7 +559,7 @@ class VirtualMachine extends EventEmitter {
      * @returns {?Promise} - a promise that resolves when the sound has been decoded and added
      */
     addSound (soundObject) {
-        return loadSound(soundObject, this.runtime).then(() => {
+        return loadSound(soundObject, this.runtime, this.editingTarget.sprite).then(() => {
             this.editingTarget.addSound(soundObject);
             this.emitTargetsUpdate();
         });
@@ -548,7 +583,7 @@ class VirtualMachine extends EventEmitter {
     getSoundBuffer (soundIndex) {
         const id = this.editingTarget.sprite.sounds[soundIndex].soundId;
         if (id && this.runtime && this.runtime.audioEngine) {
-            return this.runtime.audioEngine.getSoundBuffer(id);
+            return this.editingTarget.sprite.soundBank.getSoundPlayer(id).buffer;
         }
         return null;
     }
@@ -563,7 +598,7 @@ class VirtualMachine extends EventEmitter {
         const sound = this.editingTarget.sprite.sounds[soundIndex];
         const id = sound ? sound.soundId : null;
         if (id && this.runtime && this.runtime.audioEngine) {
-            this.runtime.audioEngine.updateSoundBuffer(id, newBuffer);
+            this.editingTarget.sprite.soundBank.getSoundPlayer(id).buffer = newBuffer;
         }
         // Update sound in runtime
         if (soundEncoding) {
@@ -935,6 +970,46 @@ class VirtualMachine extends EventEmitter {
     }
 
     /**
+     * Called when costumes are dragged from editing target to another target.
+     * Sets the newly added costume as the current costume.
+     * @param {!number} costumeIndex Index of the costume of the editing target to share.
+     * @param {!string} targetId Id of target to add the costume.
+     * @return {Promise} Promise that resolves when the new costume has been loaded.
+     */
+    shareCostumeToTarget (costumeIndex, targetId) {
+        const originalCostume = this.editingTarget.getCostumes()[costumeIndex];
+        const clone = Object.assign({}, originalCostume);
+        const md5ext = `${clone.assetId}.${clone.dataFormat}`;
+        return loadCostume(md5ext, clone, this.runtime).then(() => {
+            const target = this.runtime.getTargetById(targetId);
+            if (target) {
+                target.addCostume(clone);
+                target.setCostume(
+                    target.getCostumes().length - 1
+                );
+            }
+        });
+    }
+
+    /**
+     * Called when sounds are dragged from editing target to another target.
+     * @param {!number} soundIndex Index of the sound of the editing target to share.
+     * @param {!string} targetId Id of target to add the sound.
+     * @return {Promise} Promise that resolves when the new sound has been loaded.
+     */
+    shareSoundToTarget (soundIndex, targetId) {
+        const originalSound = this.editingTarget.getSounds()[soundIndex];
+        const clone = Object.assign({}, originalSound);
+        const target = this.runtime.getTargetById(targetId);
+        return loadSound(clone, this.runtime, target.sprite).then(() => {
+            if (target) {
+                target.addSound(clone);
+                this.emitTargetsUpdate();
+            }
+        });
+    }
+
+    /**
      * Repopulate the workspace with the blocks of the current editingTarget. This
      * allows us to get around bugs like gui#413.
      */
@@ -1032,6 +1107,55 @@ class VirtualMachine extends EventEmitter {
             return target.id;
         }
         return null;
+    }
+
+    /**
+     * Reorder target by index. Return whether a change was made.
+     * @param {!string} targetIndex Index of the target.
+     * @param {!number} newIndex index that the target should be moved to.
+     * @returns {boolean} Whether a target was reordered.
+     */
+    reorderTarget (targetIndex, newIndex) {
+        let targets = this.runtime.targets;
+        targetIndex = MathUtil.clamp(targetIndex, 0, targets.length - 1);
+        newIndex = MathUtil.clamp(newIndex, 0, targets.length - 1);
+        if (targetIndex === newIndex) return false;
+        const target = targets[targetIndex];
+        targets = targets.slice(0, targetIndex).concat(targets.slice(targetIndex + 1));
+        targets.splice(newIndex, 0, target);
+        this.runtime.targets = targets;
+        this.emitTargetsUpdate();
+        return true;
+    }
+
+    /**
+     * Reorder the costumes of a target if it exists. Return whether it succeeded.
+     * @param {!string} targetId ID of the target which owns the costumes.
+     * @param {!number} costumeIndex index of the costume to move.
+     * @param {!number} newIndex index that the costume should be moved to.
+     * @returns {boolean} Whether a costume was reordered.
+     */
+    reorderCostume (targetId, costumeIndex, newIndex) {
+        const target = this.runtime.getTargetById(targetId);
+        if (target) {
+            return target.reorderCostume(costumeIndex, newIndex);
+        }
+        return false;
+    }
+
+    /**
+     * Reorder the sounds of a target if it exists. Return whether it occured.
+     * @param {!string} targetId ID of the target which owns the sounds.
+     * @param {!number} soundIndex index of the sound to move.
+     * @param {!number} newIndex index that the sound should be moved to.
+     * @returns {boolean} Whether a sound was reordered.
+     */
+    reorderSound (targetId, soundIndex, newIndex) {
+        const target = this.runtime.getTargetById(targetId);
+        if (target) {
+            return target.reorderSound(soundIndex, newIndex);
+        }
+        return false;
     }
 
     /**

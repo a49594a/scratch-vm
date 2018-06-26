@@ -8,6 +8,7 @@ const vmPackage = require('../../package.json');
 const Blocks = require('../engine/blocks');
 const Sprite = require('../sprites/sprite');
 const Variable = require('../engine/variable');
+const Comment = require('../engine/comment');
 const StageLayering = require('../engine/stage-layering');
 const log = require('../util/log');
 const uid = require('../util/uid');
@@ -207,6 +208,9 @@ const serializeBlock = function (block) {
     if (block.mutation) {
         obj.mutation = block.mutation;
     }
+    if (block.comment) {
+        obj.comment = block.comment;
+    }
     return obj;
 };
 
@@ -384,6 +388,26 @@ const serializeVariables = function (variables) {
     return obj;
 };
 
+const serializeComments = function (comments) {
+    const obj = Object.create(null);
+    for (const commentId in comments) {
+        if (!comments.hasOwnProperty(commentId)) continue;
+        const comment = comments[commentId];
+
+        const serializedComment = Object.create(null);
+        serializedComment.blockId = comment.blockId;
+        serializedComment.x = comment.x;
+        serializedComment.y = comment.y;
+        serializedComment.width = comment.width;
+        serializedComment.height = comment.height;
+        serializedComment.minimized = comment.minimized;
+        serializedComment.text = comment.text;
+
+        obj[commentId] = serializedComment;
+    }
+    return obj;
+};
+
 /**
  * Serialize the given target. Only serialize properties that are necessary
  * for saving and loading this target.
@@ -399,6 +423,7 @@ const serializeTarget = function (target) {
     obj.lists = vars.lists;
     obj.broadcasts = vars.broadcasts;
     obj.blocks = serializeBlocks(target.blocks);
+    obj.comments = serializeComments(target.comments);
     obj.currentCostume = target.currentCostume;
     obj.costumes = target.costumes.map(serializeCostume);
     obj.sounds = target.sounds.map(serializeSound);
@@ -421,15 +446,25 @@ const serializeTarget = function (target) {
 
 /**
  * Serializes the specified VM runtime.
- * @param  {!Runtime} runtime VM runtime instance to be serialized.
+ * @param {!Runtime} runtime VM runtime instance to be serialized.
+ * @param {string=} targetId Optional target id if serializing only a single target
  * @return {object} Serialized runtime instance.
  */
-const serialize = function (runtime) {
+const serialize = function (runtime, targetId) {
     // Fetch targets
     const obj = Object.create(null);
-    const flattenedOriginalTargets = JSON.parse(JSON.stringify(
+    const flattenedOriginalTargets = JSON.parse(JSON.stringify(targetId ?
+        [runtime.getTargetById(targetId)] :
         runtime.targets.filter(target => target.isOriginal)));
-    obj.targets = flattenedOriginalTargets.map(t => serializeTarget(t, runtime));
+
+    const serializedTargets = flattenedOriginalTargets.map(t => serializeTarget(t, runtime));
+
+    if (targetId) {
+        return serializedTargets[0];
+    }
+
+    obj.targets = serializedTargets;
+
 
     // TODO Serialize monitors
 
@@ -775,7 +810,7 @@ const parseScratchObject = function (object, runtime, extensions, zip) {
         // any translation that needs to happen will happen in the process
         // of building up the costume object into an sb3 format
         return deserializeSound(sound, runtime, zip)
-            .then(() => loadSound(sound, runtime));
+            .then(() => loadSound(sound, runtime, sprite));
         // Only attempt to load the sound after the deserialization
         // process has been completed.
     });
@@ -834,6 +869,24 @@ const parseScratchObject = function (object, runtime, extensions, zip) {
             target.variables[newBroadcast.id] = newBroadcast;
         }
     }
+    if (object.hasOwnProperty('comments')) {
+        for (const commentId in object.comments) {
+            const comment = object.comments[commentId];
+            const newComment = new Comment(
+                commentId,
+                comment.text,
+                comment.x,
+                comment.y,
+                comment.width,
+                comment.height,
+                comment.minimized
+            );
+            if (comment.blockId) {
+                newComment.blockId = comment.blockId;
+            }
+            target.comments[newComment.id] = newComment;
+        }
+    }
     if (object.hasOwnProperty('x')) {
         target.x = object.x;
     }
@@ -883,10 +936,11 @@ const deserialize = function (json, runtime, zip, isSingleSprite) {
     return Promise.all(
         ((isSingleSprite ? [json] : json.targets) || []).map(target =>
             parseScratchObject(target, runtime, extensions, zip))
-    ).then(targets => ({
-        targets,
-        extensions
-    }));
+    )
+        .then(targets => ({
+            targets,
+            extensions
+        }));
 };
 
 module.exports = {

@@ -422,7 +422,7 @@ const parseScratchObject = function (object, runtime, extensions, topLevel, zip)
             // followed by the file ext
             const assetFileName = `${soundSource.soundID}.${ext}`;
             soundPromises.push(deserializeSound(sound, runtime, zip, assetFileName)
-                .then(() => loadSound(sound, runtime)));
+                .then(() => loadSound(sound, runtime, sprite)));
         }
     }
 
@@ -954,6 +954,12 @@ const parseBlock = function (sb2block, addBroadcastMsg, getVariableId, extension
         activeBlock.fields.NUMBER_NAME = {
             name: 'NUMBER_NAME',
             value: 'number'
+        };
+        break;
+    case 'costumeName':
+        activeBlock.fields.NUMBER_NAME = {
+            name: 'NUMBER_NAME',
+            value: 'name'
         };
         break;
     }

@@ -24,6 +24,7 @@ class Scratch3EventBlocks {
      */
     getPrimitives () {
         return {
+            event_whentouchingobject: this.touchingObject,
             event_broadcast: this.broadcast,
             event_broadcastandwait: this.broadcastAndWait,
             event_whengreaterthan: this.hatGreaterThanPredicate
@@ -41,6 +42,10 @@ class Scratch3EventBlocks {
             event_whenthisspriteclicked: {
                 restartExistingThreads: true
             },
+            event_whentouchingobject: {
+                restartExistingThreads: false,
+                edgeActivated: true
+            },
             event_whenstageclicked: {
                 restartExistingThreads: true
             },
@@ -55,6 +60,10 @@ class Scratch3EventBlocks {
                 restartExistingThreads: true
             }
         };
+    }
+
+    touchingObject (args, util) {
+        return util.target.isTouchingObject(args.TOUCHINGOBJECTMENU);
     }
 
     hatGreaterThanPredicate (args, util) {
@@ -100,7 +109,17 @@ class Scratch3EventBlocks {
             const instance = this;
             const waiting = util.stackFrame.startedThreads.some(thread => instance.runtime.isActiveThread(thread));
             if (waiting) {
-                util.yield();
+                // If all threads are waiting for the next tick or later yield
+                // for a tick as well. Otherwise yield until the next loop of
+                // the threads.
+                if (
+                    util.stackFrame.startedThreads
+                        .every(thread => instance.runtime.isWaitingThread(thread))
+                ) {
+                    util.yieldTick();
+                } else {
+                    util.yield();
+                }
             }
         }
     }

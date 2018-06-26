@@ -153,10 +153,17 @@ class Scratch3LooksBlocks {
             this.runtime.renderer.updateDrawableProperties(bubbleState.drawableId, {
                 position: [
                     bubbleState.onSpriteRight ? (
-                        Math.min(stageBounds.right - bubbleWidth, targetBounds.right)
+                        Math.max(
+                            stageBounds.left, // Bubble should not extend past left edge of stage
+                            Math.min(stageBounds.right - bubbleWidth, targetBounds.right)
+                        )
                     ) : (
-                        Math.max(stageBounds.left, targetBounds.left - bubbleWidth)
+                        Math.min(
+                            stageBounds.right - bubbleWidth, // Bubble should not extend past right edge of stage
+                            Math.max(stageBounds.left, targetBounds.left - bubbleWidth)
+                        )
                     ),
+                    // Bubble should not extend past the top of the stage
                     Math.min(stageBounds.top, targetBounds.bottom + bubbleHeight)
                 ]
             });
@@ -409,7 +416,17 @@ class Scratch3LooksBlocks {
         const instance = this;
         const waiting = util.stackFrame.startedThreads.some(thread => instance.runtime.isActiveThread(thread));
         if (waiting) {
-            util.yield();
+            // If all threads are waiting for the next tick or later yield
+            // for a tick as well. Otherwise yield until the next loop of
+            // the threads.
+            if (
+                util.stackFrame.startedThreads
+                    .every(thread => instance.runtime.isWaitingThread(thread))
+            ) {
+                util.yieldTick();
+            } else {
+                util.yield();
+            }
         }
     }
 

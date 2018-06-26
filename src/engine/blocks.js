@@ -6,6 +6,7 @@ const Clone = require('../util/clone');
 const {Map} = require('immutable');
 const BlocksExecuteCache = require('./blocks-execute-cache');
 const log = require('../util/log');
+const Variable = require('./variable');
 
 /**
  * @fileoverview
@@ -295,9 +296,8 @@ class Blocks {
                 oldInput: e.oldInputName,
                 newParent: e.newParentId,
                 newInput: e.newInputName,
-                newCoordinate: e.newCoordinate,
-                oldCoordinate: e.oldCoordinate
-            }, optRuntime);
+                newCoordinate: e.newCoordinate
+            });
             break;
         case 'dragOutside':
             if (optRuntime) {
@@ -363,6 +363,18 @@ class Blocks {
                 const currTarget = optRuntime.getEditingTarget();
                 currTarget.createComment(e.commentId, e.blockId, e.text,
                     e.xy.x, e.xy.y, e.width, e.height, e.minimized);
+
+                if (currTarget.comments[e.commentId].x === null &&
+                    currTarget.comments[e.commentId].y === null) {
+                    // Block comments imported from 2.0 projects are imported with their
+                    // x and y coordinates set to null so that scratch-blocks can
+                    // auto-position them. If we are receiving a create event for these
+                    // comments, then the auto positioning should have taken place.
+                    // Update the x and y position of these comments to match the
+                    // one from the event.
+                    currTarget.comments[e.commentId].x = e.xy.x;
+                    currTarget.comments[e.commentId].y = e.xy.y;
+                }
             }
             break;
         case 'comment_change':
@@ -374,22 +386,16 @@ class Blocks {
                 }
                 const comment = currTarget.comments[e.commentId];
                 const change = e.newContents_;
-                if (typeof change === 'object') {
-                    if (change.hasOwnProperty('minimized')) {
-                        comment.minimized = change.minimized;
-                        break;
-                    } else if (change.hasOwnProperty('width') && change.hasOwnProperty('height')){
-                        comment.width = change.width;
-                        comment.height = change.height;
-                        break;
-                    }
-                } else if (typeof change === 'string') {
-                    comment.text = change;
-                    break;
+                if (change.hasOwnProperty('minimized')) {
+                    comment.minimized = change.minimized;
                 }
-                log.warn(`Unrecognized comment change: ${
-                    JSON.stringify(change)} for comment with id: ${e.commentId}.`);
-                return;
+                if (change.hasOwnProperty('width') && change.hasOwnProperty('height')){
+                    comment.width = change.width;
+                    comment.height = change.height;
+                }
+                if (change.hasOwnProperty('text')) {
+                    comment.text = change.text;
+                }
             }
             break;
         case 'comment_move':
@@ -529,18 +535,21 @@ class Blocks {
             block.targetId = isSpriteSpecific ? optRuntime.getEditingTarget().id : null;
 
             if (wasMonitored && !block.isMonitored) {
-                optRuntime.requestRemoveMonitor(block.id);
+                optRuntime.requestHideMonitor(block.id);
             } else if (!wasMonitored && block.isMonitored) {
-                optRuntime.requestAddMonitor(MonitorRecord({
-                    id: block.id,
-                    targetId: block.targetId,
-                    spriteName: block.targetId ? optRuntime.getTargetById(block.targetId).getName() : null,
-                    opcode: block.opcode,
-                    params: this._getBlockParams(block),
-                    // @todo(vm#565) for numerical values with decimals, some countries use comma
-                    value: '',
-                    mode: block.opcode === 'data_listcontents' ? 'list' : 'default'
-                }));
+                // Tries to show the monitor for specified block. If it doesn't exist, add the monitor.
+                if (!optRuntime.requestShowMonitor(block.id)) {
+                    optRuntime.requestAddMonitor(MonitorRecord({
+                        id: block.id,
+                        targetId: block.targetId,
+                        spriteName: block.targetId ? optRuntime.getTargetById(block.targetId).getName() : null,
+                        opcode: block.opcode,
+                        params: this._getBlockParams(block),
+                        // @todo(vm#565) for numerical values with decimals, some countries use comma
+                        value: '',
+                        mode: block.opcode === 'data_listcontents' ? 'list' : 'default'
+                    }));
+                }
             }
             break;
         }
@@ -552,10 +561,8 @@ class Blocks {
     /**
      * Block management: move blocks from parent to parent
      * @param {!object} e Blockly move event to be processed
-     * @param {?Runtime} optRuntime Optional runtime for updating the position
-     * of a comment on the block that moved.
      */
-    moveBlock (e, optRuntime) {
+    moveBlock (e) {
         if (!this._blocks.hasOwnProperty(e.id)) {
             return;
         }
@@ -564,19 +571,6 @@ class Blocks {
         if (e.newCoordinate) {
             this._blocks[e.id].x = e.newCoordinate.x;
             this._blocks[e.id].y = e.newCoordinate.y;
-
-            // If the moved block has a comment, update the position of the comment.
-            if (typeof this._blocks[e.id].comment === 'string' && optRuntime &&
-                e.oldCoordinate) {
-                const commentId = this._blocks[e.id].comment;
-                const currTarget = optRuntime.getEditingTarget();
-                if (currTarget && currTarget.comments.hasOwnProperty(commentId)) {
-                    const deltaX = e.newCoordinate.x - e.oldCoordinate.x;
-                    const deltaY = e.newCoordinate.y - e.oldCoordinate.y;
-                    currTarget.comments[commentId].x += deltaX;
-                    currTarget.comments[commentId].y += deltaY;
-                }
-            }
         }
 
         // Remove from any old parent.
@@ -675,6 +669,44 @@ class Blocks {
         delete this._blocks[blockId];
 
         this.resetCache();
+    }
+
+    /**
+     * Returns a map of all references to variables or lists from blocks
+     * in this block container.
+     * @return {object} A map of variable ID to a list of all variable references
+     * for that ID. A variable reference contains the field referencing that variable
+     * and also the type of the variable being referenced.
+     */
+    getAllVariableAndListReferences () {
+        const blocks = this._blocks;
+        const allReferences = Object.create(null);
+        for (const blockId in blocks) {
+            let varOrListField = null;
+            let varType = null;
+            if (blocks[blockId].fields.VARIABLE) {
+                varOrListField = blocks[blockId].fields.VARIABLE;
+                varType = Variable.SCALAR_TYPE;
+            } else if (blocks[blockId].fields.LIST) {
+                varOrListField = blocks[blockId].fields.LIST;
+                varType = Variable.LIST_TYPE;
+            }
+            if (varOrListField) {
+                const currVarId = varOrListField.id;
+                if (allReferences[currVarId]) {
+                    allReferences[currVarId].push({
+                        referencingField: varOrListField,
+                        type: varType
+                    });
+                } else {
+                    allReferences[currVarId] = [{
+                        referencingField: varOrListField,
+                        type: varType
+                    }];
+                }
+            }
+        }
+        return allReferences;
     }
 
     /**
