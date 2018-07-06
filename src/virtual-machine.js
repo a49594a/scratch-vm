@@ -249,6 +249,25 @@ class VirtualMachine extends EventEmitter {
         });
     }
 
+    //by yj
+    saveProjectDiff (/*在此添加数组参数以过滤无需上传的资源文件*/) {
+        const soundDescs = serializeSounds(this.runtime);
+        const costumeDescs = serializeCostumes(this.runtime);
+        const projectJson = this.toJSON();
+
+        const zip = new JSZip();
+        zip.file('project.json', projectJson);
+        this._addFileDescsToZip(soundDescs.concat(costumeDescs), zip);
+
+        return zip.generateAsync({
+            type: 'base64', //使用base64编码方便ajax上传
+            compression: 'DEFLATE',
+            compressionOptions: {
+                level: 6 // Tradeoff between best speed (1) and best compression (9)
+            }
+        });
+    }
+
     /**
      * @returns {string} Project in a Scratch 3.0 JSON representation.
      */
