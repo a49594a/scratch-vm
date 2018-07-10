@@ -106,6 +106,16 @@ class VirtualMachine extends EventEmitter {
             this.emit(Runtime.BLOCKSINFO_UPDATE, blocksInfo);
         });
 
+        this.runtime.on(Runtime.PERIPHERAL_LIST_UPDATE, info => {
+            this.emit(Runtime.PERIPHERAL_LIST_UPDATE, info);
+        });
+        this.runtime.on(Runtime.PERIPHERAL_CONNECTED, () =>
+            this.emit(Runtime.PERIPHERAL_CONNECTED)
+        );
+        this.runtime.on(Runtime.PERIPHERAL_ERROR, () =>
+            this.emit(Runtime.PERIPHERAL_ERROR)
+        );
+
         this.extensionManager = new ExtensionManager(this.runtime);
 
         this.blockListener = this.blockListener.bind(this);
@@ -193,6 +203,22 @@ class VirtualMachine extends EventEmitter {
 
     setVideoProvider (videoProvider) {
         this.runtime.ioDevices.video.setProvider(videoProvider);
+    }
+
+    startDeviceScan (extensionId) {
+        this.runtime.startDeviceScan(extensionId);
+    }
+
+    connectToPeripheral (extensionId, peripheralId) {
+        this.runtime.connectToPeripheral(extensionId, peripheralId);
+    }
+
+    disconnectExtensionSession (extensionId) {
+        this.runtime.disconnectExtensionSession(extensionId);
+    }
+
+    getPeripheralIsConnected (extensionId) {
+        return this.runtime.getPeripheralIsConnected(extensionId);
     }
 
     /**
@@ -1093,19 +1119,21 @@ class VirtualMachine extends EventEmitter {
             const id = messageIds[i];
             delete this.runtime.getTargetForStage().variables[id];
         }
-        const variableMap = Object.assign({},
-            this.runtime.getTargetForStage().variables,
-            this.editingTarget.variables
-        );
+        const globalVarMap = Object.assign({}, this.runtime.getTargetForStage().variables);
+        const localVarMap = this.editingTarget.isStage ?
+            Object.create(null) :
+            Object.assign({}, this.editingTarget.variables);
 
-        const variables = Object.keys(variableMap).map(k => variableMap[k]);
+        const globalVariables = Object.keys(globalVarMap).map(k => globalVarMap[k]);
+        const localVariables = Object.keys(localVarMap).map(k => localVarMap[k]);
         const workspaceComments = Object.keys(this.editingTarget.comments)
             .map(k => this.editingTarget.comments[k])
             .filter(c => c.blockId === null);
 
         const xmlString = `<xml xmlns="http://www.w3.org/1999/xhtml">
                             <variables>
-                                ${variables.map(v => v.toXML()).join()}
+                                ${globalVariables.map(v => v.toXML()).join()}
+                                ${localVariables.map(v => v.toXML(true)).join()}
                             </variables>
                             ${workspaceComments.map(c => c.toXML()).join()}
                             //by yj
