@@ -43,7 +43,7 @@ const Variable = require('../engine/variable');
  */
 const specMap = {
     //add by yj
-    'Puzzle.convertPaintToWatermark': {
+    /*'Puzzle.convertPaintToWatermark': {
         opcode: 'puzzle_convertpainttowatermark',
         argMap: []
     },
@@ -118,7 +118,7 @@ const specMap = {
                 inputName: 'TRACKER'
             }
         ]
-    },
+    },*/
     'print:': {
         opcode: 'pen_print',
         argMap: [
@@ -1767,7 +1767,7 @@ const addExtensionOp = function (sb2Extension, sb2Opcode, blockInfo) {
     //added by yj
     const community = 'Community';
     addExtensionOp(community, 'userInfo', {
-        opcode: 'community.getUserInfo',
+        opcode: 'community_getUserInfo',
         argMap: [
             {
                 type: 'input',
@@ -1777,15 +1777,15 @@ const addExtensionOp = function (sb2Extension, sb2Opcode, blockInfo) {
         ]
     });
     addExtensionOp(community, 'isFollower', {
-        opcode: 'community.isFollower',
+        opcode: 'community_isFollower',
         argMap: []
     });
     addExtensionOp(community, 'isProjectLover', {
-        opcode: 'community.isProjectLover',
+        opcode: 'community_isProjectLover',
         argMap: []
     });
     addExtensionOp(community, 'openUrl', {
-        opcode: 'community.openUrl',
+        opcode: 'community_openUrl',
         argMap: [
             {
                 type: 'input',
@@ -1795,7 +1795,7 @@ const addExtensionOp = function (sb2Extension, sb2Opcode, blockInfo) {
         ]
     });
     addExtensionOp(community, 'redirectUrl', {
-        opcode: 'community.redirectUrl',
+        opcode: 'community_redirectUrl',
         argMap: [
             {
                 type: 'input',
@@ -1805,7 +1805,7 @@ const addExtensionOp = function (sb2Extension, sb2Opcode, blockInfo) {
         ]
     });
     addExtensionOp(community, 'pay', {
-        opcode: 'community.pay',
+        opcode: 'community_pay',
         argMap: [
             {
                 type: 'input',
@@ -1820,8 +1820,48 @@ const addExtensionOp = function (sb2Extension, sb2Opcode, blockInfo) {
         ]
     });
     addExtensionOp(community, 'error', {
-        opcode: 'community.getError',
+        opcode: 'community_getError',
         argMap: []
+    });
+
+    const puzzle = 'Puzzle';
+    addExtensionOp(puzzle, 'convertPaintToWatermark', {
+        opcode: 'puzzle_convertPaintToWatermark',
+        argMap: []
+    });
+    addExtensionOp(puzzle, 'showWatermark', {
+        opcode: 'puzzle_showWatermark',
+        argMap: []
+    });
+    addExtensionOp(puzzle, 'hideWatermark', {
+        opcode: 'puzzle_hideWatermark',
+        argMap: []
+    });
+    addExtensionOp(puzzle, 'isPaintSameAsWatermark', {
+        opcode: 'puzzle_isPaintSameAsWatermark',
+        argMap: []
+    });
+    addExtensionOp(puzzle, 'attemptCount', {
+        opcode: 'puzzle_attemptCount',
+        argMap: []
+    });
+    addExtensionOp(puzzle, 'stepInterval', {
+        opcode: 'puzzle_stepInterval',
+        argMap: []
+    });
+    addExtensionOp(puzzle, 'setResolved', {
+        opcode: 'puzzle_setResolved',
+        argMap: []
+    });
+    addExtensionOp(puzzle, 'setSpriteTracker', {
+        opcode: 'puzzle_setSpriteTracker',
+        argMap: [
+            {
+                type: 'input',
+                inputOp: 'text',
+                inputName: 'TRACKER'
+            }
+        ]
     });
     //end yj
 

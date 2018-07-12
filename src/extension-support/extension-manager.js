@@ -17,7 +17,15 @@ const Scratch3VideoSensingBlocks = require('../extensions/scratch3_video_sensing
 const Scratch3SpeechBlocks = require('../extensions/scratch3_speech');
 const Scratch3Ev3Blocks = require('../extensions/scratch3_ev3');
 
+//by yj
+const Scratch3PuzzleBlocks = require('../extensions/scratch3_puzzle');
+const Scratch3CommunityBlocks = require('../extensions/scratch3_community');
+
 const builtinExtensions = {
+    //by yj
+    puzzle: Scratch3PuzzleBlocks,
+    community: Scratch3CommunityBlocks,
+
     pen: Scratch3PenBlocks,
     wedo2: Scratch3WeDo2Blocks,
     music: Scratch3MusicBlocks,

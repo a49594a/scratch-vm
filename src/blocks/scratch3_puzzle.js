@@ -115,7 +115,7 @@ Scratch3PuzzleBlocks.prototype.stepInterval = function (args, util) {
 };
 
 Scratch3PuzzleBlocks.prototype.setResolved = function (args, util) {
-    if (util.runtime.puzzle.setResolved) {
+    if (util.runtime.puzzle&&util.runtime.puzzle.setResolved) {
         util.runtime.puzzle.setResolved();
     }
 };
