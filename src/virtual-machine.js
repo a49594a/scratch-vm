@@ -16,9 +16,6 @@ const validate = require('scratch-parser');
 
 const Variable = require('./engine/variable');
 
-const {loadCostume} = require('./import/load-costume.js');
-const {loadSound} = require('./import/load-sound.js');
-const {serializeSounds, serializeCostumes} = require('./serialization/serialize-assets');
 const { loadCostume } = require('./import/load-costume.js');
 const { loadSound } = require('./import/load-sound.js');
 const { serializeSounds, serializeCostumes } = require('./serialization/serialize-assets');
@@ -43,7 +40,7 @@ const CORE_EXTENSIONS = [
  * @constructor
  */
 class VirtualMachine extends EventEmitter {
-    constructor () {
+    constructor() {
         super();
 
         /**
@@ -130,7 +127,7 @@ class VirtualMachine extends EventEmitter {
     /**
      * Start running the VM - do this before anything else.
      */
-    start () {
+    start() {
         this.runtime.start();
     }
 
