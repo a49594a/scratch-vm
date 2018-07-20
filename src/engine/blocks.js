@@ -354,7 +354,7 @@ class Blocks {
             }
             break;
         case 'var_rename':
-            if (editingTarget && editingTarget.hasOwnProperty(e.varId)) {
+            if (editingTarget && editingTarget.variables.hasOwnProperty(e.varId)) {
                 // This is a local variable, rename on the current target
                 editingTarget.renameVariable(e.varId, e.newName);
                 // Update all the blocks on the current target that use
@@ -372,7 +372,7 @@ class Blocks {
             }
             break;
         case 'var_delete': {
-            const target = (editingTarget && editingTarget.hasOwnProperty(e.varId)) ?
+            const target = (editingTarget && editingTarget.variables.hasOwnProperty(e.varId)) ?
                 editingTarget : stage;
             target.deleteVariable(e.varId);
             break;
@@ -693,12 +693,15 @@ class Blocks {
     /**
      * Returns a map of all references to variables or lists from blocks
      * in this block container.
+     * @param {Array<object>} optBlocks Optional list of blocks to constrain the search to.
+     * This is useful for getting variable/list references for a stack of blocks instead
+     * of all blocks on the workspace
      * @return {object} A map of variable ID to a list of all variable references
      * for that ID. A variable reference contains the field referencing that variable
      * and also the type of the variable being referenced.
      */
-    getAllVariableAndListReferences () {
-        const blocks = this._blocks;
+    getAllVariableAndListReferences (optBlocks) {
+        const blocks = optBlocks ? optBlocks : this._blocks;
         const allReferences = Object.create(null);
         for (const blockId in blocks) {
             let varOrListField = null;

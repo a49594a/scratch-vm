@@ -115,6 +115,9 @@ class VirtualMachine extends EventEmitter {
         this.runtime.on(Runtime.PERIPHERAL_ERROR, () =>
             this.emit(Runtime.PERIPHERAL_ERROR)
         );
+        this.runtime.on(Runtime.PERIPHERAL_SCAN_TIMEOUT, () =>
+            this.emit(Runtime.PERIPHERAL_SCAN_TIMEOUT)
+        );
 
         this.extensionManager = new ExtensionManager(this.runtime);
 
@@ -940,6 +943,15 @@ class VirtualMachine extends EventEmitter {
     }
 
     /**
+     * Set the bitmap adapter for the VM/runtime, which converts scratch 2
+     * bitmaps to scratch 3 bitmaps. (Scratch 3 bitmaps are all bitmap resolution 2)
+     * @param {!function} bitmapAdapter The adapter to attach
+     */
+    attachV2BitmapAdapter (bitmapAdapter) {
+        this.runtime.attachV2BitmapAdapter(bitmapAdapter);
+    }
+
+    /**
      * Set the storage module for the VM/runtime
      * @param {!ScratchStorage} storage The storage module to attach
      */
@@ -951,12 +963,23 @@ class VirtualMachine extends EventEmitter {
      * set the current locale and builtin messages for the VM
      * @param {[type]} locale       current locale
      * @param {[type]} messages     builtin messages map for current locale
+     * @returns {Promise} Promise that resolves when all the blocks have been
+     *     updated for a new locale (or empty if locale hasn't changed.)
      */
-    setLocale(locale, messages) {
-        if (locale !== formatMessage.setup().locale) {
-            formatMessage.setup({ locale: locale, translations: { [locale]: messages } });
-            this.extensionManager.refreshBlocks();
+    setLocale (locale, messages) {
+        if (locale === formatMessage.setup().locale) {
+            return Promise.resolve();
         }
+        formatMessage.setup({locale: locale, translations: {[locale]: messages}});
+        return this.extensionManager.refreshBlocks();
+    }
+
+    /**
+     * get the current locale for the VM
+     * @returns {string} the current locale in the VM
+     */
+    getLocale () {
+        return formatMessage.setup().locale;
     }
 
     /**
@@ -1030,11 +1053,22 @@ class VirtualMachine extends EventEmitter {
      * workspace of the given target.
      * @param {!Array<object>} blocks Blocks to add.
      * @param {!string} targetId Id of target to add blocks to.
+     * @param {?string} optFromTargetId Optional target id indicating that blocks are being
+     * shared from that target. This is needed for resolving any potential variable conflicts.
      */
-    shareBlocksToTarget(blocks, targetId) {
+    shareBlocksToTarget (blocks, targetId, optFromTargetId) {
+        const copiedBlocks = JSON.parse(JSON.stringify(blocks));
         const target = this.runtime.getTargetById(targetId);
-        for (let i = 0; i < blocks.length; i++) {
-            target.blocks.createBlock(blocks[i]);
+
+        if (optFromTargetId) {
+            // If the blocks are being shared from another target,
+            // resolve any possible variable conflicts that may arise.
+            const fromTarget = this.runtime.getTargetById(optFromTargetId);
+            fromTarget.resolveVariableSharingConflictsWithTarget(copiedBlocks, target);
+        }
+
+        for (let i = 0; i < copiedBlocks.length; i++) {
+            target.blocks.createBlock(copiedBlocks[i]);
         }
         target.blocks.updateTargetSpecificBlocks(target.isStage);
     }

@@ -1,6 +1,6 @@
 const JSONRPCWebSocket = require('../util/jsonrpc-web-socket');
 const log = require('../util/log');
-const ScratchLinkWebSocket = 'ws://localhost:20110/scratch/ble';
+const ScratchLinkWebSocket = 'wss://device-manager.scratch.mit.edu:20110/scratch/ble';
 
 class BLESession extends JSONRPCWebSocket {
 
@@ -22,11 +22,11 @@ class BLESession extends JSONRPCWebSocket {
 
         this._availablePeripherals = {};
         this._connectCallback = connectCallback;
+        this._connected = false;
         this._characteristicDidChangeCallback = null;
         this._deviceOptions = deviceOptions;
+        this._discoverTimeoutID = null;
         this._runtime = runtime;
-
-        this._connected = false;
     }
 
     /**
@@ -35,7 +35,8 @@ class BLESession extends JSONRPCWebSocket {
      */
     requestDevice () {
         if (this._ws.readyState === 1) { // is this needed since it's only called on ws.onopen?
-            // TODO: start a 'discover' timeout
+            this._availablePeripherals = {};
+            this._discoverTimeoutID = window.setTimeout(this._sendDiscoverTimeout.bind(this), 15000);
             this.sendRemoteRequest('discover', this._deviceOptions)
                 .catch(e => this._sendError(e)); // never reached?
         }
@@ -50,9 +51,8 @@ class BLESession extends JSONRPCWebSocket {
     connectDevice (id) {
         this.sendRemoteRequest('connect', {peripheralId: id})
             .then(() => {
-                log.info('should have connected');
-                this._runtime.emit(this._runtime.constructor.PERIPHERAL_CONNECTED);
                 this._connected = true;
+                this._runtime.emit(this._runtime.constructor.PERIPHERAL_CONNECTED);
                 this._connectCallback();
             })
             .catch(e => {
@@ -89,7 +89,10 @@ class BLESession extends JSONRPCWebSocket {
                 this._runtime.constructor.PERIPHERAL_LIST_UPDATE,
                 this._availablePeripherals
             );
-            // TODO: cancel a discover timeout if one is active
+            if (this._discoverTimeoutID) {
+                // TODO: window?
+                window.clearTimeout(this._discoverTimeoutID);
+            }
             break;
         case 'characteristicDidChange':
             this._characteristicDidChangeCallback(params.message);
@@ -116,8 +119,10 @@ class BLESession extends JSONRPCWebSocket {
             params.startNotifications = true;
         }
         this._characteristicDidChangeCallback = onCharacteristicChanged;
-        return this.sendRemoteRequest('read', params);
-        // TODO: handle error here
+        return this.sendRemoteRequest('read', params)
+            .catch(e => {
+                this._sendError(e);
+            });
     }
 
     /**
@@ -133,13 +138,20 @@ class BLESession extends JSONRPCWebSocket {
         if (encoding) {
             params.encoding = encoding;
         }
-        return this.sendRemoteRequest('write', params);
+        return this.sendRemoteRequest('write', params)
+            .catch(e => {
+                this._sendError(e);
+            });
     }
 
     _sendError (e) {
         this._connected = false;
         log.error(`BLESession error: ${JSON.stringify(e)}`);
         this._runtime.emit(this._runtime.constructor.PERIPHERAL_ERROR);
+    }
+
+    _sendDiscoverTimeout () {
+        this._runtime.emit(this._runtime.constructor.PERIPHERAL_SCAN_TIMEOUT);
     }
 }
 

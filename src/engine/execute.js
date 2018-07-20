@@ -50,7 +50,7 @@ const isPromise = function (value) {
  */
 // @todo move this to callback attached to the thread when we have performance
 // metrics (dd)
-const handleReport = function (resolvedValue, sequencer, thread, blockCached) {
+const handleReport = function (resolvedValue, sequencer, thread, blockCached, lastOperation) {
     const currentBlockId = blockCached.id;
     const opcode = blockCached.opcode;
     const isHat = blockCached._isHat;
@@ -80,7 +80,7 @@ const handleReport = function (resolvedValue, sequencer, thread, blockCached) {
     } else {
         // In a non-hat, report the value visually if necessary if
         // at the top of the thread stack.
-        if (typeof resolvedValue !== 'undefined' && thread.atStackTop()) {
+        if (lastOperation && typeof resolvedValue !== 'undefined' && thread.atStackTop()) {
             if (thread.stackClick) {
                 sequencer.runtime.visualReport(currentBlockId, resolvedValue);
             }
@@ -102,15 +102,16 @@ const handleReport = function (resolvedValue, sequencer, thread, blockCached) {
     }
 };
 
-const handlePromise = (primitiveReportedValue, sequencer, thread, blockCached) => {
+const handlePromise = (primitiveReportedValue, sequencer, thread, blockCached, lastOperation) => {
     if (thread.status === Thread.STATUS_RUNNING) {
         // Primitive returned a promise; automatically yield thread.
         thread.status = Thread.STATUS_PROMISE_WAIT;
     }
     // Promise handlers
     primitiveReportedValue.then(resolvedValue => {
-        handleReport(resolvedValue, sequencer, thread, blockCached);
-        if (typeof resolvedValue === 'undefined') {
+        handleReport(resolvedValue, sequencer, thread, blockCached, lastOperation);
+        // If its a command block.
+        if (lastOperation && typeof resolvedValue === 'undefined') {
             let stackFrame;
             let nextBlockId;
             do {
@@ -131,8 +132,6 @@ const handlePromise = (primitiveReportedValue, sequencer, thread, blockCached) =
             } while (stackFrame !== null && !stackFrame.isLoop);
 
             thread.pushStack(nextBlockId);
-        } else {
-            thread.popStack();
         }
     }, rejectionReason => {
         // Promise rejected: the primitive had some error.
@@ -407,7 +406,44 @@ const execute = function (sequencer, thread) {
         const reported = currentStackFrame.reported;
         // Reinstate all the previous values.
         for (; i < reported.length; i++) {
-            const {opCached, inputValue} = reported[i];
+            const {opCached: oldOpCached, inputValue} = reported[i];
+
+            const opCached = ops.find(op => op.id === oldOpCached);
+
+            if (opCached) {
+                const inputName = opCached._parentKey;
+                const argValues = opCached._parentValues;
+
+                if (inputName === 'BROADCAST_INPUT') {
+                    // Something is plugged into the broadcast input.
+                    // Cast it to a string. We don't need an id here.
+                    argValues.BROADCAST_OPTION.id = null;
+                    argValues.BROADCAST_OPTION.name = cast.toString(inputValue);
+                } else {
+                    argValues[inputName] = inputValue;
+                }
+            }
+        }
+
+        // Find the last reported block that is still in the set of operations.
+        // This way if the last operation was removed, we'll find the next
+        // candidate. If an earlier block that was performed was removed then
+        // we'll find the index where the last operation is now.
+        if (reported.length > 0) {
+            const lastExisting = reported.reverse().find(report => ops.find(op => op.id === report.opCached));
+            if (lastExisting) {
+                i = ops.findIndex(opCached => opCached.id === lastExisting.opCached) + 1;
+            } else {
+                i = 0;
+            }
+        }
+
+        // The reporting block must exist and must be the next one in the sequence of operations.
+        if (thread.justReported !== null && ops[i] && ops[i].id === currentStackFrame.reporting) {
+            const opCached = ops[i];
+            const inputValue = thread.justReported;
+
+            thread.justReported = null;
 
             const inputName = opCached._parentKey;
             const argValues = opCached._parentValues;
@@ -420,22 +456,16 @@ const execute = function (sequencer, thread) {
             } else {
                 argValues[inputName] = inputValue;
             }
+
+            i += 1;
         }
 
-        // Find the last reported block that is still in the set of operations.
-        // This way if the last operation was removed, we'll find the next
-        // candidate. If an earlier block that was performed was removed then
-        // we'll find the index where the last operation is now.
-        if (reported.length > 0) {
-            const lastExisting = reported.reverse().find(report => ops.find(op => op.id === report[0].id));
-            i = ops.findIndex(opCached => opCached.id === lastExisting.id) + 1;
-        }
-
+        currentStackFrame.reporting = null;
         currentStackFrame.reported = null;
     }
 
     for (; i < length; i++) {
-        const last = i === length - 1;
+        const lastOperation = i === length - 1;
         const opCached = ops[i];
 
         const blockFunction = opCached._blockFunction;
@@ -471,25 +501,35 @@ const execute = function (sequencer, thread) {
 
         // If it's a promise, wait until promise resolves.
         if (isPromise(primitiveReportedValue)) {
-            handlePromise(primitiveReportedValue, sequencer, thread, opCached);
+            handlePromise(primitiveReportedValue, sequencer, thread, opCached, lastOperation);
 
+            // Store the already reported values. They will be thawed into the
+            // future versions of the same operations by block id. The reporting
+            // operation if it is promise waiting will set its parent value at
+            // that time.
+            thread.justReported = null;
+            currentStackFrame.reporting = ops[i].id;
             currentStackFrame.reported = ops.slice(0, i).map(reportedCached => {
                 const inputName = reportedCached._parentKey;
                 const reportedValues = reportedCached._parentValues;
 
                 if (inputName === 'BROADCAST_INPUT') {
                     return {
-                        opCached: reportedCached,
+                        opCached: reportedCached.id,
                         inputValue: reportedValues[inputName].BROADCAST_OPTION.name
                     };
                 }
                 return {
-                    opCached: reportedCached,
+                    opCached: reportedCached.id,
                     inputValue: reportedValues[inputName]
                 };
             });
+
+            // We are waiting for a promise. Stop running this set of operations
+            // and continue them later after thawing the reported values.
+            break;
         } else if (thread.status === Thread.STATUS_RUNNING) {
-            if (last) {
+            if (lastOperation) {
                 if (typeof primitiveReportedValue === 'undefined') {
                     // No value reported - potentially a command block.
                     // Edge-activated hats don't request a glow; all
@@ -497,7 +537,7 @@ const execute = function (sequencer, thread) {
                     thread.requestScriptGlowInFrame = true;
                 }
 
-                handleReport(primitiveReportedValue, sequencer, thread, opCached);
+                handleReport(primitiveReportedValue, sequencer, thread, opCached, lastOperation);
             } else {
                 // By definition a block that is not last in the list has a
                 // parent.
