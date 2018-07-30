@@ -291,7 +291,7 @@ class VirtualMachine extends EventEmitter {
         });
     }
     //by yj
-    saveProjectDiff(saveThumb) {
+    saveProjectDiff(thumbImage) {
         if (!this._savedAssetMap) this._savedAssetMap = {};
         const soundDescs = serializeSounds(this.runtime);
         const costumeDescs = serializeCostumes(this.runtime);
@@ -310,17 +310,8 @@ class VirtualMachine extends EventEmitter {
         const projectJson = this.toJSON();
         const zip = new JSZip();
         zip.file('project.json', projectJson);
-        if(saveThumb){
-            this.runtime.renderer.draw();
-            var dataUrl = this.runtime.renderer.gl.canvas.toDataURL('image/png');
-            var bstr = atob(dataUrl.split(',')[1]);
-            var n = bstr.length;
-            var u8arr = new Uint8Array(n);
-            while(n--){
-                u8arr[n] = bstr.charCodeAt(n);
-            }
-            var blob = new Blob([u8arr], {type:'image/png'});
-            zip.file('thumb.png', blob);
+        if(thumbImage){
+            zip.file('thumb.png', thumbImage);
         }
         this._addFileDescsToZip(assets, zip);
 
