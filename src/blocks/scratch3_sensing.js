@@ -309,8 +309,10 @@ class Scratch3SensingBlocks {
     }
 
     getUsername () {
+        //by yj
+        return Blockey.INIT_DATA.logedInUser.username||'';
         // Logged out users get empty string. Return that for now.
-        return '';
+        //return '';
     }
 }
 
