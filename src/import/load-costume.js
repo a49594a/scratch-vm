@@ -11,12 +11,8 @@ const loadVector_ = function (costume, costumeAsset, runtime, rotationCenter, op
         svgString = runtime.v2SvgAdapter.toString();
         // Put back into storage
         const storage = runtime.storage;
-        costumeAsset.encodeTextData(svgString, storage.DataFormat.SVG);
-        costume.assetId = storage.builtinHelper.cache(
-            storage.AssetType.ImageVector,
-            storage.DataFormat.SVG,
-            costumeAsset.data
-        );
+        costume.asset.encodeTextData(svgString, storage.DataFormat.SVG, true);
+        costume.assetId = costume.asset.assetId;
         costume.md5 = `${costume.assetId}.${costume.dataFormat}`;
     }
     // createSVGSkin does the right thing if rotationCenter isn't provided, so it's okay if it's
@@ -31,7 +27,7 @@ const loadVector_ = function (costume, costumeAsset, runtime, rotationCenter, op
         costume.bitmapResolution = 1;
     }
 
-    return costume;
+    return Promise.resolve(costume);
 };
 
 const loadBitmap_ = function (costume, costumeAsset, runtime, rotationCenter) {
@@ -63,11 +59,14 @@ const loadBitmap_ = function (costume, costumeAsset, runtime, rotationCenter) {
                 } else if (dataURI) {
                     // Put back into storage
                     const storage = runtime.storage;
-                    costume.assetId = storage.builtinHelper.cache(
+                    costume.asset = storage.createAsset(
                         storage.AssetType.ImageBitmap,
                         storage.DataFormat.PNG,
-                        runtime.v2BitmapAdapter.convertDataURIToBinary(dataURI)
+                        runtime.v2BitmapAdapter.convertDataURIToBinary(dataURI),
+                        null,
+                        true // generate md5
                     );
+                    costume.assetId = costume.asset.assetId;
                     costume.md5 = `${costume.assetId}.${costume.dataFormat}`;
                 }
                 // Regardless of if conversion succeeds, convert it to bitmap resolution 2,
@@ -122,7 +121,7 @@ const loadCostumeFromAsset = function (costume, costumeAsset, runtime, optVersio
     const renderer = runtime.renderer;
     if (!renderer) {
         log.error('No rendering module present; cannot load costume: ', costume.name);
-        return costume;
+        return Promise.resolve(costume);
     }
     const AssetType = runtime.storage.AssetType;
     let rotationCenter;
@@ -163,9 +162,12 @@ const loadCostume = function (md5ext, costume, runtime, optVersion) {
     const md5 = idParts[0];
     const ext = idParts[1].toLowerCase();
     const assetType = (ext === 'svg') ? AssetType.ImageVector : AssetType.ImageBitmap;
-
-    return runtime.storage.load(assetType, md5, ext).then(costumeAsset => {
-        costume.dataFormat = ext;
+    costume.dataFormat = ext;
+    return (
+        (costume.asset && Promise.resolve(costume.asset)) ||
+        runtime.storage.load(assetType, md5, ext)
+    ).then(costumeAsset => {
+        costume.asset = costumeAsset;
         return loadCostumeFromAsset(costume, costumeAsset, runtime, optVersion);
     })
         .catch(e => {

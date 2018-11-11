@@ -7,6 +7,7 @@ const {Map} = require('immutable');
 const BlocksExecuteCache = require('./blocks-execute-cache');
 const log = require('../util/log');
 const Variable = require('./variable');
+const getMonitorIdForBlockWithArgs = require('../util/get-monitor-id');
 
 /**
  * @fileoverview
@@ -14,8 +15,13 @@ const Variable = require('./variable');
  * and handle updates from Scratch Blocks events.
  */
 
+/**
+ * Create a block container.
+ * @param {boolean} optNoGlow Optional flag to indicate that blocks in this container
+ * should not request glows. This does not affect glows when clicking on a block to execute it.
+ */
 class Blocks {
-    constructor () {
+    constructor (optNoGlow) {
         /**
          * All blocks in the workspace.
          * Keys are block IDs, values are metadata about the block.
@@ -60,6 +66,17 @@ class Blocks {
              */
             _executeCached: {}
         };
+
+        /**
+         * Flag which indicates that blocks in this container should not glow.
+         * Blocks will still glow when clicked on, but this flag is used to control
+         * whether the blocks in this container can request a glow as part of
+         * a running stack. E.g. the flyout block container and the monitor block container
+         * should not be able to request a glow, but blocks containers belonging to
+         * sprites should.
+         * @type {boolean}
+         */
+        this.forceNoGlow = optNoGlow || false;
 
     }
 
@@ -214,11 +231,20 @@ class Blocks {
     }
 
     /**
-     * Get names of parameters for the given procedure.
+     * Get names and ids of parameters for the given procedure.
      * @param {?string} name Name of procedure to query.
      * @return {?Array.<string>} List of param names for a procedure.
      */
     getProcedureParamNamesAndIds (name) {
+        return this.getProcedureParamNamesIdsAndDefaults(name).slice(0, 2);
+    }
+
+    /**
+     * Get names, ids, and defaults of parameters for the given procedure.
+     * @param {?string} name Name of procedure to query.
+     * @return {?Array.<string>} List of param names for a procedure.
+     */
+    getProcedureParamNamesIdsAndDefaults (name) {
         const cachedNames = this._cache.procedureParamNames[name];
         if (typeof cachedNames !== 'undefined') {
             return cachedNames;
@@ -231,7 +257,9 @@ class Blocks {
                 block.mutation.proccode === name) {
                 const names = JSON.parse(block.mutation.argumentnames);
                 const ids = JSON.parse(block.mutation.argumentids);
-                this._cache.procedureParamNames[name] = [names, ids];
+                const defaults = JSON.parse(block.mutation.argumentdefaults);
+
+                this._cache.procedureParamNames[name] = [names, ids, defaults];
                 return this._cache.procedureParamNames[name];
             }
         }
@@ -241,7 +269,7 @@ class Blocks {
     }
 
     duplicate () {
-        const newBlocks = new Blocks();
+        const newBlocks = new Blocks(this.forceNoGlow);
         newBlocks._blocks = Clone.simple(this._blocks);
         newBlocks._scripts = Clone.simple(this._scripts);
         return newBlocks;
@@ -313,7 +341,7 @@ class Blocks {
                 // Drag blocks onto another sprite
                 if (e.isOutside) {
                     const newBlocks = adapter(e);
-                    optRuntime.emitBlockEndDrag(newBlocks);
+                    optRuntime.emitBlockEndDrag(newBlocks, e.blockId);
                 }
             }
             break;
@@ -496,11 +524,20 @@ class Blocks {
     changeBlock (args, optRuntime) {
         // Validate
         if (['field', 'mutation', 'checkbox'].indexOf(args.element) === -1) return;
-        const block = this._blocks[args.id];
+        let block = this._blocks[args.id];
         if (typeof block === 'undefined') return;
-        const wasMonitored = block.isMonitored;
         switch (args.element) {
         case 'field':
+            // TODO when the field of a monitored block changes,
+            // update the checkbox in the flyout based on whether
+            // a monitor for that current combination of selected parameters exists
+            // e.g.
+            // 1. check (current [v year])
+            // 2. switch dropdown in flyout block to (current [v minute])
+            // 3. the checkbox should become unchecked if we're not already
+            //    monitoring current minute
+
+
             // Update block value
             if (!block.fields[args.name]) return;
             if (args.name === 'VARIABLE' || args.name === 'LIST' ||
@@ -532,10 +569,35 @@ class Blocks {
             block.mutation = mutationAdapter(args.value);
             break;
         case 'checkbox': {
-            block.isMonitored = args.value;
             if (!optRuntime) {
                 break;
             }
+
+            // A checkbox usually has a one to one correspondence with the monitor
+            // block but in the case of monitored reporters that have arguments,
+            // map the old id to a new id, creating a new monitor block if necessary
+            if (block.fields && Object.keys(block.fields).length > 0 &&
+                block.opcode !== 'data_variable' && block.opcode !== 'data_listcontents') {
+
+                // This block has an argument which needs to get separated out into
+                // multiple monitor blocks with ids based on the selected argument
+                const newId = getMonitorIdForBlockWithArgs(block.id, block.fields);
+                // Note: we're not just constantly creating a longer and longer id everytime we check
+                // the checkbox because we're using the id of the block in the flyout as the base
+
+                // check if a block with the new id already exists, otherwise create
+                let newBlock = optRuntime.monitorBlocks.getBlock(newId);
+                if (!newBlock) {
+                    newBlock = JSON.parse(JSON.stringify(block));
+                    newBlock.id = newId;
+                    optRuntime.monitorBlocks.createBlock(newBlock);
+                }
+
+                block = newBlock; // Carry on through the rest of this code with newBlock
+            }
+
+            const wasMonitored = block.isMonitored;
+            block.isMonitored = args.value;
 
             // Variable blocks may be sprite specific depending on the owner of the variable
             let isSpriteLocalVariable = false;

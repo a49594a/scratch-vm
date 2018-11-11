@@ -93,11 +93,10 @@ class Sprite {
     /**
      * Delete a costume by index.
      * @param {number} index Costume index to be deleted
+     * @return {?object} The deleted costume
      */
     deleteCostumeAt (index) {
-        this.costumes_ = this.costumes_
-            .slice(0, index)
-            .concat(this.costumes_.slice(index + 1));
+        return this.costumes.splice(index, 1)[0];
     }
 
     /**
@@ -147,14 +146,14 @@ class Sprite {
 
         newSprite.costumes = this.costumes_.map(costume => {
             const newCostume = Object.assign({}, costume);
-            const costumeAsset = this.runtime.storage.get(costume.assetId);
+            const costumeAsset = costume.asset;
             assetPromises.push(loadCostumeFromAsset(newCostume, costumeAsset, this.runtime));
             return newCostume;
         });
 
         newSprite.sounds = this.sounds.map(sound => {
             const newSound = Object.assign({}, sound);
-            const soundAsset = this.runtime.storage.get(sound.assetId);
+            const soundAsset = sound.asset;
             assetPromises.push(loadSoundFromAsset(newSound, soundAsset, this.runtime, newSprite));
             return newSound;
         });

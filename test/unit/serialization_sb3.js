@@ -7,6 +7,7 @@ const exampleProjectPath = path.resolve(__dirname, '../fixtures/clone-cleanup.sb
 const commentsSB2ProjectPath = path.resolve(__dirname, '../fixtures/comments.sb2');
 const commentsSB3ProjectPath = path.resolve(__dirname, '../fixtures/comments.sb3');
 const commentsSB3NoDupeIds = path.resolve(__dirname, '../fixtures/comments_no_duplicate_id_serialization.sb3');
+const FakeRenderer = require('../fixtures/fake-renderer');
 
 test('serialize', t => {
     const vm = new VirtualMachine();
@@ -141,4 +142,97 @@ test('deserialize sb3 project with comments - no duplicate id serialization', t 
 
             t.end();
         });
+});
+
+test('serialize sb3 preserves sprite layer order', t => {
+    const vm = new VirtualMachine();
+    vm.attachRenderer(new FakeRenderer());
+    vm.loadProject(readFileToBuffer(path.resolve(__dirname, '../fixtures/ordering.sb2')))
+        .then(() => {
+            // Target get layer order needs a renderer,
+            // fake the numbers we would get back from the
+            // renderer in order to test that they are serialized
+            // correctly
+            vm.runtime.targets[0].getLayerOrder = () => 0;
+            vm.runtime.targets[1].getLayerOrder = () => 20;
+            vm.runtime.targets[2].getLayerOrder = () => 10;
+            vm.runtime.targets[3].getLayerOrder = () => 30;
+
+            const result = sb3.serialize(vm.runtime);
+
+            t.type(JSON.stringify(result), 'string');
+            t.type(result.targets, 'object');
+            t.equal(Array.isArray(result.targets), true);
+            t.equal(result.targets.length, 4);
+
+            // First check that the sprites are ordered correctly (as they would
+            // appear in the target pane)
+            t.equal(result.targets[0].name, 'Stage');
+            t.equal(result.targets[1].name, 'First');
+            t.equal(result.targets[2].name, 'Second');
+            t.equal(result.targets[3].name, 'Third');
+
+            // Check that they are in the correct layer order (as they would render
+            // back to front on the stage)
+            t.equal(result.targets[0].layerOrder, 0);
+            t.equal(result.targets[1].layerOrder, 2);
+            t.equal(result.targets[2].layerOrder, 1);
+            t.equal(result.targets[3].layerOrder, 3);
+
+            t.end();
+        });
+});
+
+test('serializeBlocks', t => {
+    const vm = new VirtualMachine();
+    vm.loadProject(readFileToBuffer(commentsSB3ProjectPath))
+        .then(() => {
+            const blocks = vm.runtime.targets[1].blocks._blocks;
+            const result = sb3.serializeBlocks(blocks);
+            // @todo Analyze
+            t.type(result[0], 'object');
+            t.ok(Object.keys(result[0]).length < Object.keys(blocks).length, 'less blocks in serialized format');
+            t.ok(Array.isArray(result[1]));
+            t.end();
+        });
+});
+
+test('deserializeBlocks', t => {
+    const vm = new VirtualMachine();
+    vm.loadProject(readFileToBuffer(commentsSB3ProjectPath))
+        .then(() => {
+            const blocks = vm.runtime.targets[1].blocks._blocks;
+            const serialized = sb3.serializeBlocks(blocks)[0];
+            const deserialized = sb3.deserializeBlocks(serialized);
+            t.equal(Object.keys(deserialized).length, Object.keys(blocks).length, 'same number of blocks');
+            t.end();
+        });
+});
+
+test('deserializeBlocks on already deserialized input', t => {
+    const vm = new VirtualMachine();
+    vm.loadProject(readFileToBuffer(commentsSB3ProjectPath))
+        .then(() => {
+            const blocks = vm.runtime.targets[1].blocks._blocks;
+            const serialized = sb3.serializeBlocks(blocks)[0];
+            const deserialized = sb3.deserializeBlocks(serialized);
+            const deserializedAgain = sb3.deserializeBlocks(deserialized);
+            t.deepEqual(deserialized, deserializedAgain, 'no change from second pass of deserialize');
+            t.end();
+        });
+});
+
+test('getExtensionIdForOpcode', t => {
+    t.equal(sb3.getExtensionIdForOpcode('wedo_loopy'), 'wedo');
+
+    // does not consider CORE to be extensions
+    t.false(sb3.getExtensionIdForOpcode('control_loopy'));
+
+    // only considers things before the first underscore
+    t.equal(sb3.getExtensionIdForOpcode('hello_there_loopy'), 'hello');
+
+    // does not return anything for opcodes with no extension
+    t.false(sb3.getExtensionIdForOpcode('hello'));
+
+    t.end();
 });

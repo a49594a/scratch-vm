@@ -3,6 +3,7 @@ const Sensing = require('../../src/blocks/scratch3_sensing');
 const Runtime = require('../../src/engine/runtime');
 const Sprite = require('../../src/sprites/sprite');
 const RenderedTarget = require('../../src/sprites/rendered-target');
+const BlockUtility = require('../../src/engine/block-utility');
 
 test('getPrimitives', t => {
     const rt = new Runtime();
@@ -34,6 +35,90 @@ test('ask and answer with a hidden target', t => {
         t.strictEqual(s.getAnswer(), expectedAnswer);
         t.end();
     });
+});
+
+test('ask and stop all dismisses question', t => {
+    const rt = new Runtime();
+    const s = new Sensing(rt);
+    const util = {target: {visible: false}};
+
+    const expectedQuestion = 'a question';
+
+    let call = 0;
+
+    rt.addListener('QUESTION', question => {
+        if (call === 0) {
+            // (2) Assert the question was passed.
+            t.strictEqual(question, expectedQuestion);
+        } else if (call === 1) {
+            // (4) Assert the question was dismissed.
+            t.strictEqual(question, null);
+            t.end();
+        }
+        call += 1;
+    });
+
+    // (1) Emit the question.
+    s.askAndWait({QUESTION: expectedQuestion}, util);
+    // (3) Emit the stop all event.
+    rt.stopAll();
+});
+
+test('ask and stop other scripts dismisses if it is the last question', t => {
+    const rt = new Runtime();
+    const s = new Sensing(rt);
+    const util = {target: {visible: false, sprite: {}}, thread: {}};
+
+    const expectedQuestion = 'a question';
+
+    let call = 0;
+
+    rt.addListener('QUESTION', question => {
+        if (call === 0) {
+            // (2) Assert the question was passed.
+            t.strictEqual(question, expectedQuestion);
+        } else if (call === 1) {
+            // (4) Assert the question was dismissed.
+            t.strictEqual(question, null);
+            t.end();
+        }
+        call += 1;
+    });
+
+    // (1) Emit the questions.
+    s.askAndWait({QUESTION: expectedQuestion}, util);
+    // (3) Emit the stop for target event.
+    rt.stopForTarget(util.target, util.thread);
+});
+
+test('ask and stop other scripts asks next question', t => {
+    const rt = new Runtime();
+    const s = new Sensing(rt);
+    const util = {target: {visible: false, sprite: {}}, thread: {}};
+    const util2 = {target: {visible: false, sprite: {}}, thread: {}};
+
+    const expectedQuestion = 'a question';
+    const nextQuestion = 'a followup';
+
+    let call = 0;
+
+    rt.addListener('QUESTION', question => {
+        if (call === 0) {
+            // (2) Assert the question was passed.
+            t.strictEqual(question, expectedQuestion);
+        } else if (call === 1) {
+            // (4) Assert the next question was passed.
+            t.strictEqual(question, nextQuestion);
+            t.end();
+        }
+        call += 1;
+    });
+
+    // (1) Emit the questions.
+    s.askAndWait({QUESTION: expectedQuestion}, util);
+    s.askAndWait({QUESTION: nextQuestion}, util2);
+    // (3) Emit the stop for target event.
+    rt.stopForTarget(util.target, util.thread);
 });
 
 test('ask and answer with a visible target', t => {
@@ -147,7 +232,8 @@ test('loud? boolean', t => {
 test('username block', t => {
     const rt = new Runtime();
     const sensing = new Sensing(rt);
+    const util = new BlockUtility(rt.sequencer);
 
-    t.equal(sensing.getUsername(), '');
+    t.equal(sensing.getUsername({}, util), '');
     t.end();
 });

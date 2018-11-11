@@ -44,18 +44,8 @@ const finalResponseTimeoutDurationMs = 3000;
  */
 const listenAndWaitBlockTimeoutMs = 10000;
 
-/**
- * The start and stop sounds, loaded as static assets.
- * @type {object}
- */
-let assetData = {};
-try {
-    assetData = require('./manifest');
-} catch (e) {
-    // Non-webpack environment, don't worry about assets.
-}
 
-class Scratch3SpeechBlocks {
+class Scratch3Speech2TextBlocks {
     constructor (runtime) {
         /**
          * The runtime instantiating this block package.
@@ -82,7 +72,8 @@ class Scratch3SpeechBlocks {
         this._currentUtterance = '';
 
         /**
-         *  Similar to _currentUtterance, but set back to '' at the beginning of listening block.
+         *  Similar to _currentUtterance, but set back to '' at the beginning of listening block
+         *  and on green flag.
          *  Used to get the hat blocks to edge trigger.  In order to detect someone saying
          *  the same thing twice in two subsequent listen and wait blocks
          *  and still trigger the hat, we need this to go from
@@ -155,20 +146,6 @@ class Scratch3SpeechBlocks {
          */
         this._audioPromise = null;
 
-        /**
-         * Player for sound to indicate that listending has started.
-         * @type {SoundPlayer}
-         * @private
-         */
-        this._startSoundPlayer = null;
-
-        /**
-         * Player for for sound to indicate that listending has ended.
-         * @type {SoundPlayer}
-         * @private
-         */
-        this._endSoundPlayer = null;
-
 
         /**
          * Diff Match Patch is used to do some fuzzy matching of the transcription results
@@ -188,68 +165,8 @@ class Scratch3SpeechBlocks {
 
 
         this.runtime.on('PROJECT_STOP_ALL', this._resetListening.bind(this));
+        this.runtime.on('PROJECT_START', this._resetEdgeTriggerUtterance.bind(this));
 
-        // Load in the start and stop listening indicator sounds.
-        this._loadUISounds();
-    }
-
-    /**
-     * Load the UI sounds played when listening starts and stops.
-     * @private
-     */
-    _loadUISounds () {
-        const startSoundBuffer = assetData['speech-rec-start.mp3'];
-        this._decodeSound(startSoundBuffer).then(player => {
-            this._startSoundPlayer = player;
-        });
-
-        const endSoundBuffer = assetData['speech-rec-end.mp3'];
-        this._decodeSound(endSoundBuffer).then(player => {
-            this._endSoundPlayer = player;
-        });
-    }
-
-    /**
-     * Decode a sound and return a promise with the audio buffer.
-     * @param  {ArrayBuffer} soundBuffer - a buffer containing the encoded audio.
-     * @return {Promise} - a promise which will resolve once the sound has decoded.
-     * @private
-     */
-    _decodeSound (soundBuffer) {
-        const engine = this.runtime.audioEngine;
-
-        if (!engine) {
-            return Promise.reject(new Error('No Audio Engine Detected'));
-        }
-
-        // Check for newer promise-based API
-        return engine.decodeSoundPlayer({data: {buffer: soundBuffer}});
-    }
-
-    /**
-     * Play the given sound.
-     * @param {SoundPlayer} player The audio buffer to play.
-     * @returns {Promise} A promise that resoloves when the sound is done playing.
-     * @private
-     */
-    _playSound (player) {
-        if (this.runtime.audioEngine === null) return;
-        if (player.isPlaying) {
-            // Take the internal player state and create a new player with it.
-            // `.play` does this internally but then instructs the sound to
-            // stop.
-            player.take();
-        }
-
-        const engine = this.runtime.audioEngine;
-        const chain = engine.createEffectChain();
-        player.connect(chain);
-        player.play();
-        return new Promise(resolve => {
-            player.once('stop', () => {
-                resolve();
-            });
-        });
     }
 
     /**
@@ -283,6 +200,14 @@ class Scratch3SpeechBlocks {
     }
 
     /**
+     * Get the viewer's language code.
+     * @return {string} the language code.
+     */
+    _getViewerLanguageCode () {
+        return formatMessage.setup().locale || navigator.language || navigator.userLanguage || 'en-US';
+    }
+
+    /**
      * Resets all things related to listening. Called on Red Stop sign button.
      *   - suspends audio processing
      *   - closes socket with speech socket server
@@ -290,9 +215,19 @@ class Scratch3SpeechBlocks {
      * @private.
      */
     _resetListening () {
+        this.runtime.emitMicListening(false);
         this._stopListening();
         this._closeWebsocket();
         this._resolveSpeechPromises();
+    }
+
+    /**
+     * Reset the utterance we look for in the when I hear hat block back to
+     * the empty string.
+     * @private
+     */
+    _resetEdgeTriggerUtterance () {
+        this._utteranceForEdgeTrigger = '';
     }
 
     /**
@@ -333,9 +268,7 @@ class Scratch3SpeechBlocks {
     _resolveSpeechPromises () {
         for (let i = 0; i < this._speechPromises.length; i++) {
             const resFn = this._speechPromises[i];
-            // Boolean passed tells whether to play the end sound or not. Only play it for the first one, otherwise,
-            // we get the end sound played simultaneously which results in it being quite loud.
-            resFn(i === 0);
+            resFn();
         }
         this._speechPromises = [];
     }
@@ -354,7 +287,7 @@ class Scratch3SpeechBlocks {
         // Give it a couple seconds to response before giving up and assuming nothing else will come back.
         this._speechFinalResponseTimeout = setTimeout(this._resetListening, finalResponseTimeoutDurationMs);
     }
-    
+
     /**
      * Decides whether to keep a given transcirption result.
      * @param {number} fuzzyMatchIndex Index of the fuzzy match or -1 if there is no match.
@@ -445,7 +378,7 @@ class Scratch3SpeechBlocks {
     _processTranscriptionResult (result) {
         log.info(`Got result: ${JSON.stringify(result)}`);
         const transcriptionResult = this._normalizeText(result.alternatives[0].transcript);
-  
+
         // Waiting for an exact match is not satisfying.  It makes it hard to catch
         // things like homonyms or things that sound similar "let us" vs "lettuce".  Using the fuzzy matching helps
         // more aggressively match the phrases that are in the "When I hear" hat blocks.
@@ -463,7 +396,7 @@ class Scratch3SpeechBlocks {
 
         // We're done listening so resolove all the promises and reset everying so we're ready for next time.
         this._resetListening();
-        
+
         // We got results so clear out the timeouts.
         if (this._speechTimeoutId) {
             clearTimeout(this._speechTimeoutId);
@@ -492,7 +425,7 @@ class Scratch3SpeechBlocks {
         this._processTranscriptionResult(result);
     }
 
-  
+
     /**
      * Decide whether the pattern given matches the text. Uses fuzzy matching
      * @param {string} pattern The pattern to look for.  Usually this is the transcription result
@@ -512,12 +445,8 @@ class Scratch3SpeechBlocks {
      * @private
      */
     _startListening () {
-        // If we've already setup the context, we can resume instead of doing all the setup again.
-        if (this._context) {
-            this._resumeListening();
-        } else {
-            this._initListening();
-        }
+        this.runtime.emitMicListening(true);
+        this._initListening();
         // Force the block to timeout if we don't get any results back/the user didn't say anything.
         this._speechTimeoutId = setTimeout(this._stopTranscription, listenAndWaitBlockTimeoutMs);
     }
@@ -547,25 +476,18 @@ class Scratch3SpeechBlocks {
      * @private
      */
     _initializeMicrophone () {
-        // Safari still needs a webkit prefix for audio context
-        this._context = new (window.AudioContext || window.webkitAudioContext)();
+        // Don't make a new context if we already made one.
+        if (!this._context) {
+            // Safari still needs a webkit prefix for audio context
+            this._context = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        // In safari we have to call getUserMedia every time we want to listen. Other browsers allow
+        // you to reuse the mediaStream.  See #1202 for more context.
         this._audioPromise = navigator.mediaDevices.getUserMedia({
-            audio: {
-                echoCancellation: true,
-                channelCount: 1,
-                sampleRate: {
-                    ideal: 16000
-                },
-                sampleSize: 16
-            }
+            audio: true
         });
 
-        const tempContext = this._context;
-        this._audioPromise.then(micStream => {
-            const microphone = tempContext.createMediaStreamSource(micStream);
-            const analyser = tempContext.createAnalyser();
-            microphone.connect(analyser);
-        }).catch(e => {
+        this._audioPromise.then().catch(e => {
             log.error(`Problem connecting to microphone:  ${e}`);
         });
     }
@@ -633,10 +555,12 @@ class Scratch3SpeechBlocks {
         // it, start streaming the audio bytes to the server and listening for
         // transcriptions.
         this._socket.addEventListener('message', this._socketMessageCallback, {once: true});
+        const langCode = this._getViewerLanguageCode();
         this._socket.send(JSON.stringify(
             {
                 sampleRate: this._context.sampleRate,
-                phrases: this._phraseList
+                phrases: this._phraseList,
+                locale: langCode
             }
         ));
     }
@@ -686,11 +610,11 @@ class Scratch3SpeechBlocks {
      */
     getInfo () {
         return {
-            id: 'speech',
+            id: 'speech2text',
             name: formatMessage({
                 id: 'speech.extensionName',
-                default: 'Google Speech',
-                description: 'Name of extension that adds speech recognition blocks. Do Not translate Google.'
+                default: 'Speech to Text',
+                description: 'Name of extension that adds speech recognition blocks.'
             }),
             menuIconURI: menuIconURI,
             blockIconURI: iconURI,
@@ -739,34 +663,21 @@ class Scratch3SpeechBlocks {
     }
 
     /**
-     * Start the listening process if it isn't already in progress, playing a sound to indicate
-     * when it starts and stops.
+     * Start the listening process if it isn't already in progress.
      * @return {Promise} A promise that will resolve when listening is complete.
      */
     listenAndWait () {
-        // TODO: Look into the timing of when to start the sound.  There currently seems
-        // to be some lag between when the sound starts and when the socket message
-        // callback is received. Perhaps we should play the sound after the socket is setup.
-        // TODO: Question - Should we only play the sound if listening isn't already in progress?
-        return this._playSound(this._startSoundPlayer).then(() => {
-            this._phraseList = this._scanBlocksForPhraseList();
-            this._utteranceForEdgeTrigger = '';
-            
-            const endSound = (shouldPlayEndSound => {
-                if (shouldPlayEndSound) {
-                    this._playSound(this._endSoundPlayer);
-                }
-            });
+        this._phraseList = this._scanBlocksForPhraseList();
+        this._resetEdgeTriggerUtterance();
 
-            const speechPromise = new Promise(resolve => {
-                const listeningInProgress = this._speechPromises.length > 0;
-                this._speechPromises.push(resolve);
-                if (!listeningInProgress) {
-                    this._startListening();
-                }
-            });
-            return speechPromise.then(endSound);
+        const speechPromise = new Promise(resolve => {
+            const listeningInProgress = this._speechPromises.length > 0;
+            this._speechPromises.push(resolve);
+            if (!listeningInProgress) {
+                this._startListening();
+            }
         });
+        return speechPromise;
     }
 
     /**
@@ -786,4 +697,4 @@ class Scratch3SpeechBlocks {
         return this._currentUtterance;
     }
 }
-module.exports = Scratch3SpeechBlocks;
+module.exports = Scratch3Speech2TextBlocks;

@@ -152,6 +152,14 @@ class RenderedTarget extends Target {
          * @type {string}
          */
         this.videoState = RenderedTarget.VIDEO_STATE.ON;
+
+        /**
+         * The language to use for speech synthesis, in the text2speech extension.
+         * It is initialized to null so that on extension load, we can check for
+         * this and try setting it using the editor locale.
+         * @type {string}
+         */
+        this.textToSpeechLanguage = null;
     }
 
     /**
@@ -463,6 +471,8 @@ class RenderedTarget extends Target {
     setCostume (index) {
         // Keep the costume index within possible values.
         index = Math.round(index);
+        if ([Infinity, -Infinity, NaN].includes(index)) index = 0;
+
         this.currentCostume = MathUtil.wrapClamp(
             index, 0, this.sprite.costumes.length - 1
         );
@@ -534,12 +544,19 @@ class RenderedTarget extends Target {
     /**
      * Delete a costume by index.
      * @param {number} index Costume index to be deleted
+     * @return {?object} The costume that was deleted or null
+     * if the index was out of bounds of the costumes list or
+     * this target only has one costume.
      */
     deleteCostume (index) {
         const originalCostumeCount = this.sprite.costumes.length;
-        if (originalCostumeCount === 1) return;
+        if (originalCostumeCount === 1) return null;
 
-        this.sprite.deleteCostumeAt(index);
+        if (index < 0 || index >= originalCostumeCount) {
+            return null;
+        }
+
+        const deletedCostume = this.sprite.deleteCostumeAt(index);
 
         if (index === this.currentCostume && index === originalCostumeCount - 1) {
             this.setCostume(index - 1);
@@ -550,6 +567,7 @@ class RenderedTarget extends Target {
         }
 
         this.runtime.requestTargetsUpdate(this);
+        return deletedCostume;
     }
 
     /**
@@ -585,12 +603,17 @@ class RenderedTarget extends Target {
     /**
      * Delete a sound by index.
      * @param {number} index Sound index to be deleted
+     * @return {object} The deleted sound object, or null if no sound was deleted.
      */
     deleteSound (index) {
-        this.sprite.sounds = this.sprite.sounds
-            .slice(0, index)
-            .concat(this.sprite.sounds.slice(index + 1));
+        // Make sure the sound index is not out of bounds
+        if (index < 0 || index >= this.sprite.sounds.length) {
+            return null;
+        }
+        // Delete the sound at the given index
+        const deletedSound = this.sprite.sounds.splice(index, 1)[0];
         this.runtime.requestTargetsUpdate(this);
+        return deletedSound;
     }
 
     /**
@@ -799,15 +822,7 @@ class RenderedTarget extends Target {
      */
     isTouchingPoint (x, y) {
         if (this.renderer) {
-            // @todo: Update once pick is in Scratch coordinates.
-            // Limits test to this Drawable, so this will return true
-            // even if the clone is obscured by another Drawable.
-            const pickResult = this.runtime.renderer.pick(
-                x, y,
-                null, null,
-                [this.drawableID]
-            );
-            return pickResult === this.drawableID;
+            return this.renderer.drawableTouching(this.drawableID, x, y);
         }
         return false;
     }
@@ -879,6 +894,13 @@ class RenderedTarget extends Target {
         return false;
     }
 
+    getLayerOrder () {
+        if (this.renderer) {
+            return this.renderer.getDrawableOrder(this.drawableID);
+        }
+        return null;
+    }
+
     /**
      * Move to the front layer.
      */
@@ -888,6 +910,8 @@ class RenderedTarget extends Target {
             // of what layers are present
             this.renderer.setDrawableOrder(this.drawableID, Infinity, StageLayering.SPRITE_LAYER);
         }
+
+        this.runtime.setExecutablePosition(this, Infinity);
     }
 
     /**
@@ -899,6 +923,8 @@ class RenderedTarget extends Target {
             // of what layers are present
             this.renderer.setDrawableOrder(this.drawableID, -Infinity, StageLayering.SPRITE_LAYER, false);
         }
+
+        this.runtime.setExecutablePosition(this, -Infinity);
     }
 
     /**
@@ -909,6 +935,8 @@ class RenderedTarget extends Target {
         if (this.renderer) {
             this.renderer.setDrawableOrder(this.drawableID, nLayers, StageLayering.SPRITE_LAYER, true);
         }
+
+        this.runtime.moveExecutable(this, nLayers);
     }
 
     /**
@@ -919,6 +947,8 @@ class RenderedTarget extends Target {
         if (this.renderer) {
             this.renderer.setDrawableOrder(this.drawableID, -nLayers, StageLayering.SPRITE_LAYER, true);
         }
+
+        this.runtime.moveExecutable(this, -nLayers);
     }
 
     /**
@@ -931,6 +961,9 @@ class RenderedTarget extends Target {
                 other.drawableID, 0, StageLayering.SPRITE_LAYER, true);
             this.renderer.setDrawableOrder(this.drawableID, otherLayer, StageLayering.SPRITE_LAYER);
         }
+
+        const executionPosition = this.runtime.executableTargets.indexOf(other);
+        this.runtime.setExecutablePosition(this, executionPosition);
     }
 
     /**
@@ -996,7 +1029,7 @@ class RenderedTarget extends Target {
         newClone.currentCostume = this.currentCostume;
         newClone.rotationStyle = this.rotationStyle;
         newClone.effects = JSON.parse(JSON.stringify(this.effects));
-        newClone.variables = JSON.parse(JSON.stringify(this.variables));
+        newClone.variables = this.duplicateVariables();
         newClone.initDrawable(StageLayering.SPRITE_LAYER);
         newClone.updateAllDrawableProperties();
         // Place behind the current target.
@@ -1022,7 +1055,7 @@ class RenderedTarget extends Target {
             newTarget.currentCostume = this.currentCostume;
             newTarget.rotationStyle = this.rotationStyle;
             newTarget.effects = JSON.parse(JSON.stringify(this.effects));
-            newTarget.variables = JSON.parse(JSON.stringify(this.variables));
+            newTarget.variables = this.duplicateVariables(newTarget.blocks);
             newTarget.updateAllDrawableProperties();
             newTarget.goBehindOther(this);
             return newTarget;
@@ -1043,9 +1076,6 @@ class RenderedTarget extends Target {
      */
     onStopAll () {
         this.clearEffects();
-        if (this.sprite.soundBank) {
-            this.sprite.soundBank.stopAllSounds();
-        }
     }
 
     /**
@@ -1116,6 +1146,7 @@ class RenderedTarget extends Target {
             variables: this.variables,
             costumes: costumes,
             sounds: this.getSounds(),
+            textToSpeechLanguage: this.textToSpeechLanguage,
             tempo: this.tempo,
             volume: this.volume,
             videoTransparency: this.videoTransparency,
@@ -1130,6 +1161,7 @@ class RenderedTarget extends Target {
     dispose () {
         this.runtime.changeCloneCounter(-1);
         this.runtime.stopForTarget(this);
+        this.runtime.removeExecutable(this);
         this.sprite.removeClone(this);
         if (this.renderer && this.drawableID !== null) {
             this.renderer.destroyDrawable(this.drawableID, this.isStage ?

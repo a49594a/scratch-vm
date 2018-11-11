@@ -1,5 +1,6 @@
 const Cast = require('../util/cast');
 const Timer = require('../util/timer');
+const getMonitorIdForBlockWithArgs = require('../util/get-monitor-id');
 
 class Scratch3SensingBlocks {
     constructor (runtime) {
@@ -42,6 +43,7 @@ class Scratch3SensingBlocks {
         this.runtime.on('ANSWER', this._onAnswer.bind(this));
         this.runtime.on('PROJECT_START', this._resetAnswer.bind(this));
         this.runtime.on('PROJECT_STOP_ALL', this._clearAllQuestions.bind(this));
+        this.runtime.on('STOP_FOR_TARGET', this._clearTargetQuestions.bind(this));
     }
 
     /**
@@ -88,7 +90,7 @@ class Scratch3SensingBlocks {
                 // This is different from the default toolbox xml id in order to support
                 // importing multiple monitors from the same opcode from sb2 files,
                 // something that is not currently supported in scratch 3.
-                getId: (_, param) => `current_${param}`
+                getId: (_, fields) => getMonitorIdForBlockWithArgs('current', fields) // _${param}`
             }
         };
     }
@@ -132,6 +134,21 @@ class Scratch3SensingBlocks {
     _clearAllQuestions () {
         this._questionList = [];
         this.runtime.emit('QUESTION', null);
+    }
+
+    _clearTargetQuestions (stopTarget) {
+        const currentlyAsking = this._questionList.length > 0 && this._questionList[0][2] === stopTarget;
+        this._questionList = this._questionList.filter(question => (
+            question[2] !== stopTarget
+        ));
+
+        if (currentlyAsking) {
+            if (this._questionList.length > 0) {
+                this._askNextQuestion();
+            } else {
+                this.runtime.emit('QUESTION', null);
+            }
+        }
     }
 
     askAndWait (args, util) {
@@ -308,11 +325,11 @@ class Scratch3SensingBlocks {
         return 0;
     }
 
-    getUsername () {
+    getUsername (args, util) {
         //by yj
         return Blockey.INIT_DATA.logedInUser.username||'';
-        // Logged out users get empty string. Return that for now.
-        //return '';
+
+        //return util.ioQuery('userData', 'getUsername');
     }
 }
 
