@@ -44,7 +44,7 @@
     "nets": "3.2.0",
     "scratch-parser": "4.3.2",
     "scratch-translate-extension-languages": "0.0.20180521154850",
-    "socket.io-client": "2.0.4",
+    "socket.io-client": "^2.1.1",
     "text-encoding": "0.6.4",
     "worker-loader": "^1.1.1"
   },
@@ -56,7 +56,7 @@
     "babel-loader": "^8.0.4",
     "copy-webpack-plugin": "^4.5.4",
     "docdash": "^1.0.0",
-    "eslint": "^5.3.0",
+    "eslint": "^5.9.0",
     "eslint-config-scratch": "^5.0.0",
     "expose-loader": "0.7.5",
     "file-loader": "^2.0.0",
@@ -67,17 +67,17 @@
     "json": "^9.0.4",
     "lodash.defaultsdeep": "4.6.0",
     "pngjs": "^3.3.2",
-    "scratch-audio": "latest",
-    "scratch-blocks": "latest",
-    "scratch-render": "latest",
+    "scratch-audio": "0.1.0-prerelease.20181023202904",
+    "scratch-blocks": "0.1.0-prerelease.1541795263",
+    "scratch-render": "0.1.0-prerelease.20181102130522",
     "scratch-storage": "^1.1.0",
     "scratch-svg-renderer": "latest",
     "script-loader": "0.7.2",
     "stats.js": "^0.17.0",
     "tap": "^12.0.1",
     "tiny-worker": "^2.1.1",
-    "webpack": "^4.16.5",
+    "webpack": "^4.25.1",
     "webpack-cli": "^3.1.0",
-    "webpack-dev-server": "^3.1.5"
+    "webpack-dev-server": "^3.1.10"
   }
 }
