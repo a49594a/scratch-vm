@@ -1,6 +1,7 @@
 const log = require('../util/log');
 const MathUtil = require('../util/math-util');
 const StringUtil = require('../util/string-util');
+const Clone = require('../util/clone');
 const Target = require('../engine/target');
 const StageLayering = require('../engine/stage-layering');
 
@@ -257,17 +258,6 @@ class RenderedTarget extends Target {
     }
 
     /**
-     * Round a number to n digits
-     * @param {number} value The number to be rounded
-     * @param {number} places The number of decimal places to round to
-     * @return {number} The rounded number
-     */
-    _roundCoord (value, places) {
-        const power = Math.pow(10, places);
-        return Math.round(value * power) / power;
-    }
-
-    /**
      * Set the X and Y coordinates.
      * @param {!number} x New X coordinate, in Scratch coordinates.
      * @param {!number} y New Y coordinate, in Scratch coordinates.
@@ -280,8 +270,6 @@ class RenderedTarget extends Target {
         const oldY = this.y;
         if (this.renderer) {
             const position = this.renderer.getFencedPositionOfDrawable(this.drawableID, [x, y]);
-            position[0] = this._roundCoord(position[0], 8);
-            position[1] = this._roundCoord(position[1], 8);
             this.x = position[0];
             this.y = position[1];
 
@@ -293,8 +281,8 @@ class RenderedTarget extends Target {
                 this.runtime.requestRedraw();
             }
         } else {
-            this.x = this._roundCoord(x, 8);
-            this.y = this._roundCoord(y, 8);
+            this.x = x;
+            this.y = y;
         }
         this.emit(RenderedTarget.EVENT_TARGET_MOVED, this, oldX, oldY, force);
         this.runtime.requestTargetsUpdate(this);
@@ -1028,8 +1016,9 @@ class RenderedTarget extends Target {
         newClone.size = this.size;
         newClone.currentCostume = this.currentCostume;
         newClone.rotationStyle = this.rotationStyle;
-        newClone.effects = JSON.parse(JSON.stringify(this.effects));
+        newClone.effects = Clone.simple(this.effects);
         newClone.variables = this.duplicateVariables();
+        newClone._edgeActivatedHatValues = Clone.simple(this._edgeActivatedHatValues);
         newClone.initDrawable(StageLayering.SPRITE_LAYER);
         newClone.updateAllDrawableProperties();
         // Place behind the current target.

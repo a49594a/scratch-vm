@@ -33,19 +33,25 @@ class Cloud {
      * a cloud variable update
      */
 
-
     /**
      * Cloud IO Device responsible for sending and receiving messages from
      * cloud provider (mananging the cloud server connection) and interacting
      * with cloud variables in the current project.
+     * @param {Runtime} runtime The runtime context for this cloud io device.
      */
-    constructor () {
+    constructor (runtime) {
         /**
          * Reference to the cloud data provider, responsible for mananging
          * the web socket connection to the cloud data server.
          * @type {?CloudProvider}
          */
         this.provider = null;
+
+        /**
+         * Reference to the runtime that owns this cloud io device.
+         * @type {!Runtime}
+         */
+        this.runtime = runtime;
 
         /**
          * Reference to the stage target which owns the cloud variables
@@ -82,6 +88,17 @@ class Cloud {
         }
     }
 
+    requestCreateVariable (variable) {
+        if (this.runtime.canAddCloudVariable()) {
+            if (this.provider) {
+                this.provider.createVariable(variable.name, variable.value);
+                // We'll set the cloud flag and update the
+                // cloud variable limit when we actually
+                // get a confirmation from the cloud data server
+            }
+        } // TODO else track creation for later
+    }
+
     /**
      * Request the cloud data provider to update the given variable with
      * the given value. Does nothing if this io device does not have a provider set.
@@ -95,9 +112,32 @@ class Cloud {
     }
 
     /**
+     * Request the cloud data provider to rename the variable with the given name
+     * to the given new name. Does nothing if this io device does not have a provider set.
+     * @param {string} oldName The name of the variable to rename
+     * @param {string | number} newName The new name for the variable
+     */
+    requestRenameVariable (oldName, newName) {
+        if (this.provider) {
+            this.provider.renameVariable(oldName, newName);
+        }
+    }
+
+    /**
+     * Request the cloud data provider to delete the variable with the given name
+     * Does nothing if this io device does not have a provider set.
+     * @param {string} name The name of the variable to delete
+     */
+    requestDeleteVariable (name) {
+        if (this.provider) {
+            this.provider.deleteVariable(name);
+        }
+    }
+
+    /**
      * Update a cloud variable in the runtime based on the message received
      * from the cloud provider.
-     * @param {VarUpdateData} varUpdate A {@link VarUpdateData} object describing
+     * @param {VarData} varUpdate A {@link VarData} object describing
      * a cloud variable update received from the cloud data provider.
      */
     updateCloudVariable (varUpdate) {

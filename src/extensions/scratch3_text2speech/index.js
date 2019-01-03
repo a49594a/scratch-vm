@@ -465,14 +465,14 @@ class Scratch3Text2SpeechBlocks {
 
         // @todo localize this?
         if (state.voiceId === KITTEN_ID) {
-            words = words.replace(/\w+/g, 'meow');
+            words = words.replace(/\S+/g, 'meow');
         }
 
         // Build up URL
         let path = `${SERVER_HOST}/synth`;
         path += `?locale=${this.localeToPolly(this.getCurrentLanguage())}`;
         path += `&gender=${gender}`;
-        path += `&text=${encodeURI(words.substring(0, 128))}`;
+        path += `&text=${encodeURIComponent(words.substring(0, 128))}`;
 
         // Perform HTTP request to get audio file
         return new Promise(resolve => {

@@ -67,7 +67,7 @@ test('ask and stop all dismisses question', t => {
 test('ask and stop other scripts dismisses if it is the last question', t => {
     const rt = new Runtime();
     const s = new Sensing(rt);
-    const util = {target: {visible: false, sprite: {}}, thread: {}};
+    const util = {target: {visible: false, sprite: {}, getCustomState: () => ({})}, thread: {}};
 
     const expectedQuestion = 'a question';
 
@@ -94,8 +94,8 @@ test('ask and stop other scripts dismisses if it is the last question', t => {
 test('ask and stop other scripts asks next question', t => {
     const rt = new Runtime();
     const s = new Sensing(rt);
-    const util = {target: {visible: false, sprite: {}}, thread: {}};
-    const util2 = {target: {visible: false, sprite: {}}, thread: {}};
+    const util = {target: {visible: false, sprite: {}, getCustomState: () => ({})}, thread: {}};
+    const util2 = {target: {visible: false, sprite: {}, getCustomState: () => ({})}, thread: {}};
 
     const expectedQuestion = 'a question';
     const nextQuestion = 'a followup';
@@ -225,6 +225,34 @@ test('loud? boolean', t => {
 
     simulatedLoudness = 11;
     t.true(sensing.isLoud());
+
+    t.end();
+});
+
+test('get attribute of sprite variable', t => {
+    const rt = new Runtime();
+    const sensing = new Sensing(rt);
+    const s = new Sprite();
+    const target = new RenderedTarget(s, rt);
+    const variable = {
+        name: 'cars',
+        value: 'trucks',
+        type: ''
+    };
+    // Add variable to set the map (it should be empty before this).
+    target.variables.anId = variable;
+    rt.getSpriteTargetByName = () => target;
+    t.equal(sensing.getAttributeOf({PROPERTY: 'cars'}), 'trucks');
+
+    t.end();
+});
+test('get attribute of variable that does not exist', t => {
+    const rt = new Runtime();
+    const sensing = new Sensing(rt);
+    const s = new Sprite();
+    const target = new RenderedTarget(s, rt);
+    rt.getTargetForStage = () => target;
+    t.equal(sensing.getAttributeOf({PROPERTY: 'variableThatDoesNotExist'}), 0);
 
     t.end();
 });

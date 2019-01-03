@@ -1,4 +1,4 @@
-const test = require('tap').test;
+const tap = require('tap');
 const VirtualMachine = require('../../src/virtual-machine');
 const Sprite = require('../../src/sprites/sprite');
 const Variable = require('../../src/engine/variable');
@@ -7,6 +7,10 @@ const events = require('../fixtures/events.json');
 const Renderer = require('../fixtures/fake-renderer');
 const Runtime = require('../../src/engine/runtime');
 const RenderedTarget = require('../../src/sprites/rendered-target');
+
+tap.tearDown(() => process.nextTick(process.exit));
+
+const test = tap.test;
 
 test('deleteSound returns function after deleting or null if nothing was deleted', t => {
     const vm = new VirtualMachine();
@@ -663,6 +667,36 @@ test('setVariableValue', t => {
     t.end();
 });
 
+test('setVariableValue requests update for cloud variable', t => {
+    const vm = new VirtualMachine();
+    const spr = new Sprite(null, vm.runtime);
+    const target = spr.createClone();
+    target.isStage = true;
+    target.createVariable('a-variable', 'a-name', Variable.SCALAR_TYPE, true /* isCloud */);
+
+    vm.runtime.targets = [target];
+
+    // Mock cloud io device requestUpdateVariable function
+    let requestUpdateVarWasCalled = false;
+    let varName;
+    let varValue;
+    vm.runtime.ioDevices.cloud.requestUpdateVariable = (name, value) => {
+        requestUpdateVarWasCalled = true;
+        varName = name;
+        varValue = value;
+    };
+
+    vm.setVariableValue(target.id, 'not-a-variable', 100);
+    t.equal(requestUpdateVarWasCalled, false);
+
+    vm.setVariableValue(target.id, 'a-variable', 100);
+    t.equal(requestUpdateVarWasCalled, true);
+    t.equal(varName, 'a-name');
+    t.equal(varValue, 100);
+
+    t.end();
+});
+
 test('getVariableValue', t => {
     const vm = new VirtualMachine();
     const spr = new Sprite(null, vm.runtime);
@@ -965,5 +999,54 @@ test('Getting the renderer returns the renderer', t => {
     const vm = new VirtualMachine();
     vm.attachRenderer(renderer);
     t.equal(vm.renderer, renderer);
+    t.end();
+});
+
+test('Starting the VM emits an event', t => {
+    let started = false;
+    const vm = new VirtualMachine();
+    vm.addListener('RUNTIME_STARTED', () => {
+        started = true;
+    });
+    vm.start();
+    t.equal(started, true);
+    t.end();
+});
+
+test('vm.greenFlag() emits a PROJECT_START event', t => {
+    let greenFlagged = false;
+    const vm = new VirtualMachine();
+    vm.addListener('PROJECT_START', () => {
+        greenFlagged = true;
+    });
+    vm.greenFlag();
+    t.equal(greenFlagged, true);
+    t.end();
+});
+
+test('toJSON encodes Infinity/NaN as 0, not null', t => {
+    const vm = new VirtualMachine();
+    const runtime = vm.runtime;
+    const spr1 = new Sprite(null, runtime);
+    const stage = spr1.createClone();
+    stage.isStage = true;
+    stage.volume = Infinity;
+    stage.tempo = NaN;
+    stage.createVariable('id1', 'name1', '');
+    stage.variables.id1.value = Infinity;
+    stage.createVariable('id2', 'name2', '');
+    stage.variables.id1.value = -Infinity;
+    stage.createVariable('id3', 'name3', '');
+    stage.variables.id1.value = NaN;
+
+    runtime.targets = [stage];
+
+    const json = JSON.parse(vm.toJSON());
+    t.equal(json.targets[0].volume, 0);
+    t.equal(json.targets[0].tempo, 0);
+    t.equal(json.targets[0].variables.id1[1], 0);
+    t.equal(json.targets[0].variables.id2[1], 0);
+    t.equal(json.targets[0].variables.id3[1], 0);
+
     t.end();
 });
