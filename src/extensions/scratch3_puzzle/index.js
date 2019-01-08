@@ -93,6 +93,8 @@ class Scratch3PuzzleBlocks {
         var penSkin = this.runtime.renderer._allSkins[this.runtime.penSkinId];
         var watermarkSkin = this.runtime.renderer._allSkins[this.runtime.watermarkSkinId];
 
+        penSkin.updateSilhouette();
+
         var size = penSkin.size;
         var w = size[0];
         var h = size[1];
@@ -150,6 +152,8 @@ class Scratch3PuzzleBlocks {
         var penSkin = this.runtime.renderer._allSkins[this.runtime.penSkinId];
         var watermarkSkin = this.runtime.renderer._allSkins[this.runtime.watermarkSkinId];
 
+        penSkin.updateSilhouette();
+        
         var size = penSkin.size;
         var w = size[0];
         var h = size[1];
