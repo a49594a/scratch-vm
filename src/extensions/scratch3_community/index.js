@@ -113,10 +113,11 @@ class Scratch3CommunityBlocks {
     }
     
     getUserInfo (args, util) {
-        if (!Blockey.INIT_DATA.LOGGED_IN_USER.options.authenticated) return "";
-        if (args.USER_ATTR == "user id") return Blockey.INIT_DATA.LOGGED_IN_USER.model.id;
-        else if (args.USER_ATTR == "username") return Blockey.INIT_DATA.LOGGED_IN_USER.model.username;
-        else if (args.USER_ATTR == "user level") return Blockey.INIT_DATA.LOGGED_IN_USER.model.level;
+        var loggedInUser = Blockey.Utils.getLoggedInUser();
+        if (!loggedInUser) return "";
+        if (attr == "user id") return loggedInUser.id;
+        else if (attr == "username") return loggedInUser.username;
+        else if (attr == "user level") return loggedInUser.level;
         else return "";
     }
     

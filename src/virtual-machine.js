@@ -349,7 +349,7 @@ class VirtualMachine extends EventEmitter {
 
     //by yj
     updateSavedAssetMap() {
-        if (!this._savedAssetMap) this._savedAssetMap = {};
+        /*if (!this._savedAssetMap) this._savedAssetMap = {};
         const soundDescs = serializeSounds(this.runtime);
         soundDescs.forEach(asset => {
             this._savedAssetMap[asset.fileName] = true;
@@ -357,11 +357,16 @@ class VirtualMachine extends EventEmitter {
         const costumeDescs = serializeCostumes(this.runtime);
         costumeDescs.forEach(asset => {
             this._savedAssetMap[asset.fileName] = true;
+        });*/
+        this.assets.forEach(asset => {
+            if (!asset.clean) {
+                asset.clean = true;
+            }
         });
     }
     //by yj
     saveProjectDiff(thumbImage) {
-        if (!this._savedAssetMap) this._savedAssetMap = {};
+        /*if (!this._savedAssetMap) this._savedAssetMap = {};
         const soundDescs = serializeSounds(this.runtime);
         const costumeDescs = serializeCostumes(this.runtime);
         var assets = [];
@@ -373,6 +378,14 @@ class VirtualMachine extends EventEmitter {
         costumeDescs.forEach(asset => {
             if (!this._savedAssetMap[asset.fileName]) {
                 assets.push(asset);
+            }
+        });*/
+        var assets=[];
+        this.assets.forEach(asset => {
+            if (!asset.clean) {
+                assets.push({
+                    fileName: `${asset.assetId}.${asset.dataFormat}`,
+                    fileContent: asset.data});
             }
         });
 
@@ -428,14 +441,13 @@ class VirtualMachine extends EventEmitter {
     /*
      * @type {Array<object>} Array of all costumes and sounds currently in the runtime
      */
-    //by yj deleted by mit, but may be used by blockey
-    /*get assets () {
+    get assets () {
         return this.runtime.targets.reduce((acc, target) => (
             acc
                 .concat(target.sprite.sounds.map(sound => sound.asset))
                 .concat(target.sprite.costumes.map(costume => costume.asset))
         ), []);
-    }*/
+    }
 
     /**
      * Exports a sprite in the sprite3 format.

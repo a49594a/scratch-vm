@@ -124,6 +124,7 @@ class Scratch3PuzzleBlocks {
         }
 
         penSkin.clear();
+        watermarkSkin.clear();
         watermarkSkin._canvas.getContext("2d").putImageData(canvasData, 0, 0);
         watermarkSkin._canvasDirty = true;
     };
