@@ -20,10 +20,10 @@ const blockIconURI = 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNv
  * @constructor
  */
 class Scratch3CommunityBlocks {
-    constructor (runtime) {
-        
+    constructor(runtime) {
+
         this.lastPayTime = 0;
-        this._error='';
+        this._error = '';
 
         /**
          * The runtime instantiating this block package.
@@ -35,20 +35,19 @@ class Scratch3CommunityBlocks {
     /**
      * @returns {object} metadata for this extension and its blocks.
      */
-    getInfo () {
+    getInfo() {
         return {
             id: 'community',
             name: 'Community',
             blockIconURI: blockIconURI,
-            blocks: [
-                {
+            blocks: [{
                     opcode: 'getUserInfo',
                     blockType: BlockType.REPORTER,
                     text: '[USER_ATTR]',
                     arguments: {
                         USER_ATTR: {
                             type: ArgumentType.STRING,
-                            menu: 'userAttr',
+                            menu: 'USER_ATTR',
                             defaultValue: 'user level'
                         }
                     }
@@ -107,28 +106,29 @@ class Scratch3CommunityBlocks {
                 }
             ],
             menus: {
-                userAttr:['user id', 'username', 'user level']
+                USER_ATTR: ['user id', 'username', 'user level']
             }
         };
     }
-    
-    getUserInfo (args, util) {
+
+    getUserInfo(args, util) {
         var loggedInUser = Blockey.Utils.getLoggedInUser();
         if (!loggedInUser) return "";
+        var attr = args.USER_ATTR;
         if (attr == "user id") return loggedInUser.id;
         else if (attr == "username") return loggedInUser.username;
         else if (attr == "user level") return loggedInUser.level;
         else return "";
     }
-    
-    isFollower () {
+
+    isFollower() {
         return !!(Blockey.INIT_DATA.PROJECT && Blockey.INIT_DATA.PROJECT.model.isCreatorFollower);
     }
-    
-    isProjectLover () {
+
+    isProjectLover() {
         return !!(Blockey.INIT_DATA.PROJECT && Blockey.INIT_DATA.PROJECT.model.isProjectLover);
     }
-    
+
     isValidUrl(url) {
         var regex = /.*\:\/\/([^\/]*).*/;
         var match = url.match(regex);
@@ -137,8 +137,7 @@ class Scratch3CommunityBlocks {
             var validDomain = ".aerfaying.com"
             if (domain.indexOf(validDomain) >= 0 && domain.indexOf(validDomain) + validDomain.length == domain.length) {
                 return true;
-            }
-            else {
+            } else {
                 return false;
             }
         } else {
@@ -146,48 +145,55 @@ class Scratch3CommunityBlocks {
         }
     }
 
-    openUrl (args, util) {
+    openUrl(args, util) {
         if (this.isValidUrl(args.URL)) {
             window.open(args.URL);
-        }
-        else {
+        } else {
             alert("该指令块只能用于打开魔抓社区的页面");
         }
     }
 
-    redirectUrl (args, util) {        
+    redirectUrl(args, util) {
         if (this.isValidUrl(args.URL)) {
             window.location = args.URL;
-        }
-        else {
+        } else {
             alert("该指令块只能用于打开魔抓社区的页面");
         }
     }
-    
-    pay (args, util) {
-        var self=this;
+
+    pay(args, util) {
+        var self = this;
         self._error = "";
         return new Promise(resolve => {
             var template = _.template('你确定要支付<strong><%=amount%></strong>金币购买<strong><%=remark%></strong>吗？' + ((new Date().getTime() - self.lastPayTime < 2000) ? '<div><smaller>如果重复看到此提示，请给<a href="/User?id=1">守护者</a>留言举报。</smaller></div>' : ''));
-            Blockey.Dialog.confirm("作品内购支付确认", template({ amount: args.AMOUNT, remark: args.ITEM }), function (e) {
+            Blockey.Dialog.confirm("作品内购支付确认", template({
+                amount: args.AMOUNT,
+                remark: args.ITEM
+            }), function (e) {
                 if (e) {
                     $.ajax({
                         type: "POST",
                         dataType: "json",
-                        data: { id: Blockey.INIT_DATA.PROJECT.model.id, amount: args.AMOUNT, remark: args.ITEM },
+                        data: {
+                            id: Blockey.INIT_DATA.PROJECT.model.id,
+                            amount: args.AMOUNT,
+                            remark: args.ITEM
+                        },
                         url: "/MProjectApi/Pay",
                     }).done(function (e) {
                         if (!e.status) self._error = e.message;
                     }).error(function (e) {
                         self._error = "未知错误";
-                        Blockey.AlertView.msg($("#alert-view"), { alert: "error", msg: e.statusText })
+                        Blockey.AlertView.msg($("#alert-view"), {
+                            alert: "error",
+                            msg: e.statusText
+                        })
                     }).always(function (e) {
                         setTimeout(function () {
                             resolve();
                         }, 500);
                     });
-                }
-                else {
+                } else {
                     self._error = "取消";
                     setTimeout(function () {
                         resolve();
@@ -198,7 +204,7 @@ class Scratch3CommunityBlocks {
         });
     }
 
-    getError (args, util) {
+    getError(args, util) {
         return this._error;
     }
 

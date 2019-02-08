@@ -21,11 +21,13 @@ const Scratch3MakeyMakeyBlocks = require('../extensions/scratch3_makeymakey');
 //by yj
 const Scratch3PuzzleBlocks = require('../extensions/scratch3_puzzle');
 const Scratch3CommunityBlocks = require('../extensions/scratch3_community');
+const Scratch3KinectBlocks = require('../extensions/scratch3_kinect');
 
 const builtinExtensions = {
     //by yj
     puzzle: Scratch3PuzzleBlocks,
     community: Scratch3CommunityBlocks,
+    kinect: Scratch3KinectBlocks,
 
     pen: Scratch3PenBlocks,
     wedo2: Scratch3WeDo2Blocks,

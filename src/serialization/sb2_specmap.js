@@ -1799,7 +1799,7 @@ const addExtensionOp = function (sb2Extension, sb2Opcode, blockInfo) {
         argMap: [
             {
                 type: 'input',
-                inputOp: 'community.menu.userAttr',
+                inputOp: 'community_menu_USER_ATTR',
                 inputName: 'USER_ATTR'
             }
         ]
@@ -1888,6 +1888,23 @@ const addExtensionOp = function (sb2Extension, sb2Opcode, blockInfo) {
                 type: 'input',
                 inputOp: 'text',
                 inputName: 'TRACKER'
+            }
+        ]
+    });
+
+    const kinect = 'Kinect';
+    addExtensionOp(kinect, 'getValue', {
+        opcode: 'kinect_getSensorOfPlayer',
+        argMap: [
+            {
+                type: 'input',
+                inputOp: 'kinect_menu_SENSOR',
+                inputName: 'SENSOR'
+            },
+            {
+                type: 'input',
+                inputOp: 'kinect_menu_PLAYER',
+                inputName: 'PLAYER'
             }
         ]
     });
