@@ -28,7 +28,7 @@ class Scratch3KinectBlocks {
         this.runtime = runtime;
 
         this._sensors = {};
-        window.setTimeout(this.load, 50);
+        window.setTimeout(this.load.bind(this), 50);
     }
 
     /**
@@ -77,24 +77,24 @@ class Scratch3KinectBlocks {
         };
     }
     load() {
+        var self = this;
         Blockey.Utils.ajax({
             url: "http://localhost:8080",
-            data: {},
             crossDomain: true,
             cache: false,
-            type: "POST",
+            loadingStyle: 'None',
             success: (r) => {
-                this._sensors = r;
-                window.setTimeout(this.load, 10);
+                self._sensors = r;
+                window.setTimeout(self.load.bind(self), 10);
             },
             error: (e) => {
-                this._sensors = {};
-                window.setTimeout(this.load, 10);
+                self._sensors = {};
+                window.setTimeout(self.load.bind(self), 10);
             }
         });
     }
-    getSensorOfPlayer(sensor, player) {
-        var val = this._sensors[player + "_" + sensor];
+    getSensorOfPlayer(args, util) {
+        var val = this._sensors[args.PLAYER + "_" + args.SENSOR];
         return val ? val : 0;
     }
 }
