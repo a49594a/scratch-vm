@@ -267,18 +267,19 @@ class Scratch3DataBlocks {
         var scope = args.LOCATION;
         var varval = variable.value;
         var t = new Date().getTime();
-        var s = Sha1.hash(encodeURIComponent("aerfaying" + Blockey.INIT_DATA.PROJECT.model.id + "var" + varname + varval + scope + t).toLowerCase());
+        var s = Sha1.hash(encodeURIComponent("aerfaying" + Blockey.INIT_DATA.project.id + "var" + varname + varval + scope + t).toLowerCase());
         return new Promise(resolve => {
             $.ajax({
                 url: "/MProjectApi/SaveVariable",
-                data: { id: Blockey.INIT_DATA.PROJECT.model.id, type: 'var', name: varname, value: varval, scope: scope, t: t, s: s },
+                data: { id: Blockey.INIT_DATA.project.id, type: 'var', name: varname, value: varval, scope: scope, t: t, s: s },
                 type: "POST"
             }).done(function (response) {
                 if (response.status) {
-                    Blockey.bonusTips.show(response.bonusTips);
+                    //TO FIX
+                    //Blockey.bonusTips.show(response.bonusTips);
                 }
                 else if (!response.status && response.message) {
-                    Blockey.AlertView.msg($("#alert-view"), { alert: "error", msg: response.message });
+                    Blockey.Utils.Alerter.info(response.message);
                 }
                 resolve();
             });
@@ -292,14 +293,14 @@ class Scratch3DataBlocks {
         return new Promise(resolve => {
             $.ajax({
                 url: "/MProjectApi/LoadVariable",
-                data: { id: Blockey.INIT_DATA.PROJECT.model.id, type: 'var', name: varname, scope: scope },
+                data: { id: Blockey.INIT_DATA.project.id, type: 'var', name: varname, scope: scope },
                 type: "POST"
             }).done(function (response) {
                 if (response.status) {
                     variable.value = response.value;
                 }
                 else if (!response.status && response.message) {
-                    Blockey.AlertView.msg($("#alert-view"), { alert: "error", msg: response.message });
+                    Blockey.Utils.Alerter.info(response.message);
                 }
                 resolve();
             });
@@ -312,18 +313,19 @@ class Scratch3DataBlocks {
         var scope = args.LOCATION;
         var varval = JSON.stringify(variable.value);
         var t = new Date().getTime();
-        var s = Sha1.hash(encodeURIComponent("aerfaying" + Blockey.INIT_DATA.PROJECT.model.id + "list" + varname + varval + scope + t).toLowerCase());
+        var s = Sha1.hash(encodeURIComponent("aerfaying" + Blockey.INIT_DATA.project.id + "list" + varname + varval + scope + t).toLowerCase());
         return new Promise(resolve => {
             $.ajax({
                 url: "/MProjectApi/SaveVariable",
-                data: { id: Blockey.INIT_DATA.PROJECT.model.id, type: 'list', name: varname, value: varval, scope: scope, t: t, s: s },
+                data: { id: Blockey.INIT_DATA.project.id, type: 'list', name: varname, value: varval, scope: scope, t: t, s: s },
                 type: "POST"
             }).done(function (response) {
                 if (response.status) {
-                    Blockey.bonusTips.show(response.bonusTips);
+                    //TO FIX
+                    //Blockey.bonusTips.show(response.bonusTips);
                 }
                 else if (!response.status && response.message) {
-                    Blockey.AlertView.msg($("#alert-view"), { alert: "error", msg: response.message });
+                    Blockey.Utils.Alerter.info(response.message);
                 }
                 resolve();
             });
@@ -337,14 +339,14 @@ class Scratch3DataBlocks {
         return new Promise(resolve => {
             $.ajax({
                 url: "/MProjectApi/LoadVariable",
-                data: { id: Blockey.INIT_DATA.PROJECT.model.id, type: 'list', name: varname, scope: scope },
+                data: { id: Blockey.INIT_DATA.project.id, type: 'list', name: varname, scope: scope },
                 type: "POST"
             }).done(function (response) {
                 if (response.status) {
                     variable.value = JSON.parse(response.value);
                 }
                 else if (!response.status && response.message) {
-                    Blockey.AlertView.msg($("#alert-view"), { alert: "error", msg: response.message });
+                    Blockey.Utils.Alerter.info(response.message);
                 }
                 resolve();
             });

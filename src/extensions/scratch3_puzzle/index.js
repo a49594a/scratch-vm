@@ -1,18 +1,13 @@
 ﻿const ArgumentType = require('../../extension-support/argument-type');
 const BlockType = require('../../extension-support/block-type');
-const Cast = require('../../util/cast');
-const Clone = require('../../util/clone');
-const Color = require('../../util/color');
-const MathUtil = require('../../util/math-util');
-const RenderedTarget = require('../../sprites/rendered-target');
-const log = require('../../util/log');
 
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
  * @type {string}
  */
 // eslint-disable-next-line max-len
-const blockIconURI = 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4NCjxzdmcgdmVyc2lvbj0iMS4xIiBpZD0ibGF5ZXJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeD0iMHB4IiB5PSIwcHgiDQoJIHZpZXdCb3g9Ii0yMzMgMzU2LjkgMTI4IDEyOCIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAtMjMzIDM1Ni45IDEyOCAxMjg7IiB4bWw6c3BhY2U9InByZXNlcnZlIj4NCjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+DQoJLnN0MHtmaWxsOiM3RjNGOTg7fQ0KPC9zdHlsZT4NCjxwYXRoIGlkPSJYTUxJRF8yXyIgY2xhc3M9InN0MCIgZD0iTS0xNjkuMSw0NzcuNmMtMi4xLDAtNC0wLjgtNS40LTIuM2wtMTIuOC0xMi44Yy0xLjcsMy43LTQsNy4xLTYuMyw5LjQNCgljLTMuNSwzLjUtOC40LDUuNS0xMy4zLDUuNWMtNC45LDAtOS44LTItMTMuMy01LjVjLTcuMy03LjQtNy4zLTE5LjMsMC0yNi42YzIuMy0yLjMsNS43LTQuNSw5LjQtNi4zbC0xMi43LTEyLjdjLTMtMy0zLTcuOSwwLTEwLjkNCglsMTguMi0xOC4ybDIuOCw0LjdjMSwxLjcsMi4yLDMuMywzLjIsNC4zYzQuMyw0LjMsMTEuMyw0LjMsMTUuNywwYzIuMS0yLjEsMy4zLTQuOSwzLjMtNy44YzAtMy0xLjEtNS43LTMuMi03LjgNCgljLTEuMS0xLjEtMi42LTIuMi00LjMtMy4ybC00LjgtMi43bDE4LjItMTguMmMxLjQtMS42LDMuMy0yLjQsNS4zLTIuNGMyLjEsMCw0LDAuOCw1LjQsMi4zbDEyLjgsMTIuOGMxLjgtMy44LDQtNy4yLDYuMy05LjUNCgljNy40LTcuNCwxOS40LTcuNCwyNi43LDBjMy42LDMuNiw1LjYsOC4zLDUuNiwxMy40YzAsNS0yLDkuOC01LjYsMTMuNGMtMi4xLDIuMS01LjUsNC40LTkuNSw2LjNsMTIuNywxMi44YzEuNCwxLjQsMi4yLDMuNCwyLjIsNS40DQoJYzAsMi4xLTAuOCw0LTIuMyw1LjRsLTE4LjEsMTguMWwtMi44LTQuNmMtMS4xLTEuOS0yLjItMy4zLTMuMi00LjNjLTQuNC00LjMtMTEuMy00LjMtMTUuOCwwbC0wLjEsMC4xYy00LjMsNC4zLTQuMiwxMS4yLDAsMTUuNQ0KCWMxLjQsMS4zLDIuOCwyLjMsNC40LDMuMmw0LjgsMi43bC0xOC4yLDE4LjJDLTE2NS4xLDQ3Ni44LTE2Nyw0NzcuNi0xNjkuMSw0NzcuNnogTS0yMTcsNDIwLjhsMjAuNywyMC44bC0xMC4xLDQuNg0KCWMtMy4xLDEuNC02LjEsMy4zLTcuOCw1Yy00LDQtNCwxMC43LDAsMTQuOGMxLjksMS45LDQuNiwzLDcuMywzczUuNC0xLjEsNy40LTMuMWMxLjctMS43LDMuNi00LjcsNS03LjhsNC42LTEwbDIwLjgsMjAuOGwxMC4yLTEwLjINCgljLTAuNS0wLjQtMS0wLjktMS42LTEuNGwtMC4xLTAuMWMtMy43LTMuNy01LjctOC41LTUuNy0xMy43YzAtNS4yLDItMTAuMSw1LjYtMTMuOGwwLjEtMC4xYzcuOC03LjcsMTkuOS03LjcsMjcuNiwwDQoJYzAuNSwwLjUsMSwxLDEuNSwxLjZsMTAuMi0xMC4ybC0yMC42LTIwLjlsMTAuMi00LjZjMy40LTEuNiw2LjQtMy40LDcuOS01YzItMiwzLjEtNC42LDMuMS03LjRzLTEuMS01LjQtMy4xLTcuNA0KCWMtNC4yLTQuMi0xMC43LTQuMi0xNC44LDBjLTEuNywxLjctMy42LDQuNy01LDcuOWwtNC43LDEwLjFsLTIwLjgtMjAuOGwtMTAuMiwxMC4yYzAuNiwwLjUsMS4xLDEsMS42LDEuNWMzLjcsMy43LDUuNyw4LjYsNS43LDEzLjgNCgljMCw1LjItMi4xLDEwLjEtNS44LDEzLjhjLTcuNiw3LjYtMTkuOSw3LjYtMjcuNSwwYy0wLjUtMC41LTEtMS0xLjQtMS42TC0yMTcsNDIwLjh6Ii8+DQo8L3N2Zz4=';
+const blockIconURI = 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSLlm77lsYJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeD0iMHB4IiB5PSIwcHgiCgkgdmlld0JveD0iMCAwIDEyOCAxMjgiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDEyOCAxMjg7IiB4bWw6c3BhY2U9InByZXNlcnZlIj4KPGc+Cgk8cGF0aCBzdHlsZT0iZmlsbDojRkZGRkZGOyIgZD0iTTEwNy4xLDU2LjVoLTYuOVYzNy44YzAtNS00LjQtOS40LTkuNC05LjRINzIuMXYtNy41QzcxLjUsMTQsNjUuOSw5LDU5LjYsOQoJCWMtNi45LDAtMTEuOSw1LTExLjksMTEuOXY2LjlIMjljLTUuNiwwLTEwLDQuNC0xMCwxMHYxOC4xaDYuOUMzMi44LDU1LjksMzksNjEuNSwzOSw2OWMwLDYuOS01LjYsMTMuMS0xMy4xLDEzLjFIMTl2MTguMQoJCWMwLDQuNCw0LjQsOC44LDkuNCw4LjhoMTguMXYtNi45YzAtNi45LDUuNi0xMy4xLDEzLjEtMTMuMWM2LjksMCwxMy4xLDUuNiwxMy4xLDEzLjF2Ni45aDE4LjFjNSwwLDkuNC00LjQsOS40LTkuNFY4MC45aDYuOQoJCWM2LjksMCwxMS45LTUsMTEuOS0xMS45QzExOSw2MS41LDExNCw1Ni41LDEwNy4xLDU2LjVMMTA3LjEsNTYuNXoiLz4KPC9nPgo8L3N2Zz4K';
+const menuIconURI = 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSLlm77lsYJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeD0iMHB4IiB5PSIwcHgiCgkgdmlld0JveD0iMCAwIDE4IDE4IiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxOCAxODsiIHhtbDpzcGFjZT0icHJlc2VydmUiPgo8Zz4KCTxwYXRoIHN0eWxlPSJmaWxsOiMxMjk2REI7IiBkPSJNMTYuMSw3LjZIMTV2LTNjMC0wLjgtMC43LTEuNS0xLjUtMS41aC0zVjEuOWMtMC4xLTEuMS0xLTEuOS0yLTEuOUM3LjQsMCw2LjYsMC44LDYuNiwxLjlWM2gtMwoJCUMyLjcsMywyLDMuNywyLDQuNnYyLjloMS4xYzEuMSwwLDIuMSwwLjksMi4xLDIuMWMwLDEuMS0wLjksMi4xLTIuMSwyLjFIMnYyLjlDMiwxNS4zLDIuNywxNiwzLjUsMTZoMi45di0xLjEKCQljMC0xLjEsMC45LTIuMSwyLjEtMi4xYzEuMSwwLDIuMSwwLjksMi4xLDIuMVYxNmgyLjljMC44LDAsMS41LTAuNywxLjUtMS41di0zaDEuMWMxLjEsMCwxLjktMC44LDEuOS0xLjkKCQlDMTgsOC40LDE3LjIsNy42LDE2LjEsNy42TDE2LjEsNy42eiIvPgo8L2c+Cjwvc3ZnPgo=';
 
 /**
  * Host for the Pen-related blocks in Scratch 3.0
@@ -36,8 +31,8 @@ class Scratch3PuzzleBlocks {
             id: 'puzzle',
             name: 'Puzzle',
             blockIconURI: blockIconURI,
-            blocks: [
-                {
+            menuIconURI: menuIconURI,
+            blocks: [{
                     opcode: 'convertPaintToWatermark',
                     blockType: BlockType.COMMAND,
                     text: '将画板保存为水印'
@@ -154,7 +149,7 @@ class Scratch3PuzzleBlocks {
         var watermarkSkin = this.runtime.renderer._allSkins[this.runtime.watermarkSkinId];
 
         penSkin.updateSilhouette();
-        
+
         var size = penSkin.size;
         var w = size[0];
         var h = size[1];
@@ -179,8 +174,31 @@ class Scratch3PuzzleBlocks {
     };
 
     setResolved(args, util) {
-        if (util.runtime.puzzle&&util.runtime.puzzle.setResolved) {
+        var ctx = Blockey.Utils.getContext();
+        if (util.runtime.puzzle && util.runtime.puzzle.setResolved) {
             util.runtime.puzzle.setResolved();
+        } else if (ctx.targetType == 'Project' && ctx.target.missionId && ctx.loggedInUser) {
+            //如果是编程谜题类型任务在blockey的blocks中定义
+            /*if (Scratch.FlashApp.ASobj.ASisEditMode()) {
+                Blockey.Utils.Alerter.info("不能在设计模式下完成任务");
+                callback();
+                return;
+            }
+            if (!Scratch.FlashApp.ASobj.ASisUnchanged()) {
+                Blockey.Utils.Alerter.info("你已修改过该作品，不能完成该任务");
+                callback();
+                return;
+            }*/
+            Blockey.Utils.ajax({
+                url: `/WebApi/Missions/${ctx.target.missionId}/SetResolved`,
+                success: (r) => {
+                    if (r.status) {
+                        Blockey.Utils.confirm("任务完成", "恭喜你，已经成功完成任务！现在就去领取奖励吗？").then(() => {
+                            window.location = "/Users/" + ctx.loggedInUser.id + "/Missions#id=" + ctx.target.missionId;
+                        }).catch(() => {});
+                    }
+                },
+            });
         }
     };
 

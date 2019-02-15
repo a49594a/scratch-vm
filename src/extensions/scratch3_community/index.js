@@ -122,11 +122,11 @@ class Scratch3CommunityBlocks {
     }
 
     isFollower() {
-        return !!(Blockey.INIT_DATA.PROJECT && Blockey.INIT_DATA.PROJECT.model.isCreatorFollower);
+        return !!(Blockey.INIT_DATA.userProject && Blockey.INIT_DATA.userProject.isFollower);
     }
 
     isProjectLover() {
-        return !!(Blockey.INIT_DATA.PROJECT && Blockey.INIT_DATA.PROJECT.model.isProjectLover);
+        return !!(Blockey.INIT_DATA.userProject && Blockey.INIT_DATA.userProject.isLoved);
     }
 
     isValidUrl(url) {
@@ -165,41 +165,30 @@ class Scratch3CommunityBlocks {
         var self = this;
         self._error = "";
         return new Promise(resolve => {
-            var template = _.template('你确定要支付<strong><%=amount%></strong>金币购买<strong><%=remark%></strong>吗？' + ((new Date().getTime() - self.lastPayTime < 2000) ? '<div><smaller>如果重复看到此提示，请给<a href="/User?id=1">守护者</a>留言举报。</smaller></div>' : ''));
-            Blockey.Dialog.confirm("作品内购支付确认", template({
-                amount: args.AMOUNT,
-                remark: args.ITEM
-            }), function (e) {
-                if (e) {
-                    $.ajax({
-                        type: "POST",
-                        dataType: "json",
-                        data: {
-                            id: Blockey.INIT_DATA.PROJECT.model.id,
-                            amount: args.AMOUNT,
-                            remark: args.ITEM
-                        },
-                        url: "/MProjectApi/Pay",
-                    }).done(function (e) {
-                        if (!e.status) self._error = e.message;
-                    }).error(function (e) {
-                        self._error = "未知错误";
-                        Blockey.AlertView.msg($("#alert-view"), {
-                            alert: "error",
-                            msg: e.statusText
-                        })
-                    }).always(function (e) {
-                        setTimeout(function () {
-                            resolve();
-                        }, 500);
-                    });
-                } else {
-                    self._error = "取消";
-                    setTimeout(function () {
+            var content = `你确定要支付<strong>${Blockey.Utils.encodeHtml(args.AMOUNT)}</strong>金币购买<strong>${Blockey.Utils.encodeHtml(args.ITEM)}</strong>吗？`;
+            if (new Date().getTime() - self.lastPayTime < 2000) content += `<div><smaller>如果重复看到此提示，请使用警报器举报。</smaller></div>`;
+            Blockey.Utils.confirm('作品内购支付确认', content).then(() => {
+                Blockey.Utils.ajax({
+                    url: "/MProjectApi/Pay",
+                    data: {
+                        id: Blockey.INIT_DATA.project.id,
+                        amount: args.AMOUNT,
+                        remark: args.ITEM
+                    },
+                    success: (r) => {
+                        if (!r.status) self._error = r.message;
                         resolve();
-                    }, 500);
-                }
+                    },
+                    error: (e) => {
+                        self._error = "未知错误";
+                        Blockey.Utils.Alerter.info(e.statusText);
+                        resolve();
+                    }
+                });
                 self.lastPayTime = new Date().getTime();
+            }).catch(() => {
+                self._error = "取消";
+                resolve();
             });
         });
     }
