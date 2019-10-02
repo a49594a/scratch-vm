@@ -175,30 +175,10 @@ class Scratch3PuzzleBlocks {
 
     setResolved(args, util) {
         var ctx = Blockey.Utils.getContext();
-        if (util.runtime.puzzle && util.runtime.puzzle.setResolved) {
-            util.runtime.puzzle.setResolved();
+        if (util.runtime.puzzle && !util.runtime.puzzle.preventComplete) {
+            util.runtime.emit("MISSION_RESOLVED");
         } else if (ctx.targetType == 'Project' && ctx.target.missionId && ctx.loggedInUser) {
-            //如果是编程谜题类型任务在blockey的blocks中定义
-            /*if (Scratch.FlashApp.ASobj.ASisEditMode()) {
-                Blockey.Utils.Alerter.info("不能在设计模式下完成任务");
-                callback();
-                return;
-            }
-            if (!Scratch.FlashApp.ASobj.ASisUnchanged()) {
-                Blockey.Utils.Alerter.info("你已修改过该作品，不能完成该任务");
-                callback();
-                return;
-            }*/
-            Blockey.Utils.ajax({
-                url: `/WebApi/Missions/${ctx.target.missionId}/SetResolved`,
-                success: (r) => {
-                    if (r.status) {
-                        Blockey.Utils.confirm("任务完成", "恭喜你，已经成功完成任务！现在就去领取奖励吗？").then(() => {
-                            window.location = "/Users/" + ctx.loggedInUser.id + "/Missions#id=" + ctx.target.missionId;
-                        }).catch(() => {});
-                    }
-                },
-            });
+            Blockey.Utils.setMissionResolved(ctx.target.missionId, {});
         }
     };
 

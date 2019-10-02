@@ -130,19 +130,8 @@ class Scratch3CommunityBlocks {
     }
 
     isValidUrl(url) {
-        var regex = /.*\:\/\/([^\/]*).*/;
-        var match = url.match(regex);
-        if (match) {
-            var domain = match[1];
-            var validDomain = ".aerfaying.com"
-            if (domain.indexOf(validDomain) >= 0 && domain.indexOf(validDomain) + validDomain.length == domain.length) {
-                return true;
-            } else {
-                return false;
-            }
-        } else {
-            return false;
-        }
+        var regex = /^((https|http)?:\/\/(www\.aerfaying\.com|aerfaying\.com|mozhua\.aerfaying\.com)|(\/[^\/]))/;
+        return regex.test(url.toLowerCase());
     }
 
     openUrl(args, util) {
@@ -165,13 +154,19 @@ class Scratch3CommunityBlocks {
         var self = this;
         self._error = "";
         return new Promise(resolve => {
+            Blockey.Utils.payInProject(args.AMOUNT, args.ITEM, self.lastPayTime).then(error => {
+                self._error = error || '';
+                self.lastPayTime = new Date().getTime();
+                resolve();
+            });
+        });
+        /*return new Promise(resolve => {
             var content = `你确定要支付<strong>${Blockey.Utils.encodeHtml(args.AMOUNT)}</strong>金币购买<strong>${Blockey.Utils.encodeHtml(args.ITEM)}</strong>吗？`;
             if (new Date().getTime() - self.lastPayTime < 2000) content += `<div><smaller>如果重复看到此提示，请使用警报器举报。</smaller></div>`;
             Blockey.Utils.confirm('作品内购支付确认', content).then(() => {
                 Blockey.Utils.ajax({
-                    url: "/MProjectApi/Pay",
+                    url: `/WebApi/Projects/${Blockey.INIT_DATA.project.id}/Pay`,
                     data: {
-                        id: Blockey.INIT_DATA.project.id,
                         amount: args.AMOUNT,
                         remark: args.ITEM
                     },
@@ -190,7 +185,7 @@ class Scratch3CommunityBlocks {
                 self._error = "取消";
                 resolve();
             });
-        });
+        });*/
     }
 
     getError(args, util) {
