@@ -262,71 +262,66 @@ class Scratch3DataBlocks {
     
     //added by yj
     saveVariable (args, util) {
+        var ctx = Blockey.Utils.getContext();
+        if (Blockey.GUI_CONFIG.MODE == 'Editor' && !(ctx.targetType == 'Project' && ctx.loggedInUser && ctx.target.creatorId == ctx.loggedInUser.id)) return;
+
         var variable = util.target.lookupOrCreateVariable(args.VARIABLE.id, args.VARIABLE.name);
         var varname = variable.name;
         var scope = args.LOCATION;
         var varval = variable.value;
-        var t = new Date().getTime();
-        var s = Sha1.hash(encodeURIComponent("aerfaying" + Blockey.INIT_DATA.project.id + "var" + varname + varval + scope + t).toLowerCase());
+        //var t = new Date().getTime();
+        //var s = Sha1.hash(encodeURIComponent("aerfaying" + Blockey.INIT_DATA.project.id + "var" + varname + varval + scope + t).toLowerCase());
         return new Promise(resolve => {
-            $.ajax({
-                url: "/MProjectApi/SaveVariable",
-                data: { id: Blockey.INIT_DATA.project.id, type: 'var', name: varname, value: varval, scope: scope, t: t, s: s },
+            Blockey.Utils.ajax({
+                url: `/WebApi/Projects/${ctx.target.id}/SaveVariable`,
+                loadingStyle: "none",
+                hashStr: '',
+                data: { type: 'var', name: varname, value: varval, scope: scope },
                 type: "POST"
-            }).done(function (response) {
-                if (response.status) {
-                    //TO FIX
-                    //Blockey.bonusTips.show(response.bonusTips);
-                }
-                else if (!response.status && response.message) {
-                    Blockey.Utils.Alerter.info(response.message);
-                }
+            }).done(r => {
                 resolve();
             });
         });
     }
 
     loadVariable (args, util) {
+        var ctx = Blockey.Utils.getContext();
+
         var variable = util.target.lookupOrCreateVariable(args.VARIABLE.id, args.VARIABLE.name);
         var varname = variable.name;
         var scope = args.LOCATION;
         return new Promise(resolve => {
-            $.ajax({
-                url: "/MProjectApi/LoadVariable",
-                data: { id: Blockey.INIT_DATA.project.id, type: 'var', name: varname, scope: scope },
+            Blockey.Utils.ajax({
+                url: `/WebApi/Projects/${ctx.target.id}/LoadVariable`,
+                loadingStyle: "none",
+                hashStr: '',
+                data: { type: 'var', name: varname, scope: scope },
                 type: "POST"
-            }).done(function (response) {
-                if (response.status) {
-                    variable.value = response.value;
-                }
-                else if (!response.status && response.message) {
-                    Blockey.Utils.Alerter.info(response.message);
-                }
+            }).done(r => {
+                variable.value = r.value;
                 resolve();
             });
         });
     }
 
     saveList (args, util) {
+        var ctx = Blockey.Utils.getContext();
+        if (Blockey.GUI_CONFIG.MODE == 'Editor' && !(ctx.targetType == 'Project' && ctx.loggedInUser && ctx.target.creatorId == ctx.loggedInUser.id)) return;
+
         var variable = util.target.lookupOrCreateVariable(args.LIST.id, args.LIST.name);
         var varname = variable.name;
         var scope = args.LOCATION;
         var varval = JSON.stringify(variable.value);
-        var t = new Date().getTime();
-        var s = Sha1.hash(encodeURIComponent("aerfaying" + Blockey.INIT_DATA.project.id + "list" + varname + varval + scope + t).toLowerCase());
+        //var t = new Date().getTime();
+        //var s = Sha1.hash(encodeURIComponent("aerfaying" + Blockey.INIT_DATA.project.id + "list" + varname + varval + scope + t).toLowerCase());
         return new Promise(resolve => {
-            $.ajax({
-                url: "/MProjectApi/SaveVariable",
-                data: { id: Blockey.INIT_DATA.project.id, type: 'list', name: varname, value: varval, scope: scope, t: t, s: s },
+            Blockey.Utils.ajax({
+                url: `/WebApi/Projects/${ctx.target.id}/SaveVariable`,
+                loadingStyle: "none",
+                hashStr: '',
+                data: { type: 'list', name: varname, value: varval, scope: scope },
                 type: "POST"
-            }).done(function (response) {
-                if (response.status) {
-                    //TO FIX
-                    //Blockey.bonusTips.show(response.bonusTips);
-                }
-                else if (!response.status && response.message) {
-                    Blockey.Utils.Alerter.info(response.message);
-                }
+            }).done(r => {
                 resolve();
             });
         });
@@ -337,17 +332,14 @@ class Scratch3DataBlocks {
         var varname = variable.name;
         var scope = args.LOCATION;
         return new Promise(resolve => {
-            $.ajax({
-                url: "/MProjectApi/LoadVariable",
-                data: { id: Blockey.INIT_DATA.project.id, type: 'list', name: varname, scope: scope },
+            Blockey.Utils.ajax({
+                url: `/WebApi/Projects/${ctx.target.id}/LoadVariable`,
+                loadingStyle: "none",
+                hashStr: '',
+                data: { type: 'list', name: varname, scope: scope },
                 type: "POST"
-            }).done(function (response) {
-                if (response.status) {
-                    variable.value = JSON.parse(response.value);
-                }
-                else if (!response.status && response.message) {
-                    Blockey.Utils.Alerter.info(response.message);
-                }
+            }).done(r => {
+                variable.value = JSON.parse(r.value);
                 resolve();
             });
         });

@@ -160,32 +160,6 @@ class Scratch3CommunityBlocks {
                 resolve();
             });
         });
-        /*return new Promise(resolve => {
-            var content = `你确定要支付<strong>${Blockey.Utils.encodeHtml(args.AMOUNT)}</strong>金币购买<strong>${Blockey.Utils.encodeHtml(args.ITEM)}</strong>吗？`;
-            if (new Date().getTime() - self.lastPayTime < 2000) content += `<div><smaller>如果重复看到此提示，请使用警报器举报。</smaller></div>`;
-            Blockey.Utils.confirm('作品内购支付确认', content).then(() => {
-                Blockey.Utils.ajax({
-                    url: `/WebApi/Projects/${Blockey.INIT_DATA.project.id}/Pay`,
-                    data: {
-                        amount: args.AMOUNT,
-                        remark: args.ITEM
-                    },
-                    success: (r) => {
-                        if (!r.status) self._error = r.message;
-                        resolve();
-                    },
-                    error: (e) => {
-                        self._error = "未知错误";
-                        Blockey.Utils.Alerter.info(e.statusText);
-                        resolve();
-                    }
-                });
-                self.lastPayTime = new Date().getTime();
-            }).catch(() => {
-                self._error = "取消";
-                resolve();
-            });
-        });*/
     }
 
     getError(args, util) {
