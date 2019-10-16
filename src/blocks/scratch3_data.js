@@ -298,7 +298,7 @@ class Scratch3DataBlocks {
                 data: { type: 'var', name: varname, scope: scope },
                 type: "POST"
             }).done(r => {
-                variable.value = r.value;
+                variable.value = r.value||'';
                 resolve();
             });
         });
@@ -328,6 +328,8 @@ class Scratch3DataBlocks {
     }
 
     loadList (args, util) {
+        var ctx = Blockey.Utils.getContext();
+
         var variable = util.target.lookupOrCreateVariable(args.LIST.id, args.LIST.name);
         var varname = variable.name;
         var scope = args.LOCATION;
@@ -339,7 +341,7 @@ class Scratch3DataBlocks {
                 data: { type: 'list', name: varname, scope: scope },
                 type: "POST"
             }).done(r => {
-                variable.value = JSON.parse(r.value);
+                variable.value = JSON.parse(r.value)||[];
                 resolve();
             });
         });
