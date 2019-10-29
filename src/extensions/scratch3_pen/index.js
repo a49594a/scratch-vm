@@ -76,6 +76,7 @@ class Scratch3PenBlocks {
      */
     static get DEFAULT_PEN_STATE () {
         return {
+            penDownMode: 'point',//by yj
             penDown: false,
             color: 66.66,
             saturation: 100,
@@ -313,6 +314,18 @@ class Scratch3PenBlocks {
                         }
                     }
                 },
+                {
+                    opcode: 'setPenDownMode',
+                    blockType: BlockType.COMMAND,
+                    text: '将落笔模式设为[PEN_DOWN_MODE]',
+                    arguments: {
+                        PEN_DOWN_MODE: {
+                            type: ArgumentType.STRING,
+                            menu: 'PEN_DOWN_MODE',
+                            defaultValue: 'point'
+                        }
+                    }
+                },
 
                 {
                     opcode: 'clear',
@@ -501,6 +514,9 @@ class Scratch3PenBlocks {
                 }
             ],
             menus: {
+                //by yj
+                PEN_DOWN_MODE: ['point', 'no point'],
+
                 colorParam: this._initColorParam()
             }
         };
@@ -546,7 +562,7 @@ class Scratch3PenBlocks {
         }
 
         const penSkinId = this._getPenLayerID();
-        if (penSkinId >= 0) {
+        if (penSkinId >= 0 && penState.penDownMode=='point'/*by yj */) {
             this.runtime.renderer.penPoint(penSkinId, penState.penAttributes, target.x, target.y);
             this.runtime.requestRedraw();
         }
@@ -801,6 +817,12 @@ class Scratch3PenBlocks {
         ctx.fillText(args.TEXT, 0, 0);
         ctx.restore();
         skin._canvasDirty=true;
+    }
+    setPenDownMode (args, util) {
+        const target = util.target;
+        const penState = this._getPenState(target);
+
+        penState.penDownMode = args.PEN_DOWN_MODE;
     }
 }
 
