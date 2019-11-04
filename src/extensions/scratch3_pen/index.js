@@ -517,7 +517,10 @@ class Scratch3PenBlocks {
                 //by yj
                 PEN_DOWN_MODE: ['point', 'no point'],
 
-                colorParam: this._initColorParam()
+                colorParam: {
+                    acceptReporters: true,
+                    items: this._initColorParam()
+                }
             }
         };
     }

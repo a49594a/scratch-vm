@@ -1,6 +1,8 @@
 const test = require('tap').test;
 const Worker = require('tiny-worker');
 
+const BlockType = require('../../src/extension-support/block-type');
+
 const dispatch = require('../../src/dispatch/central-dispatch');
 const VirtualMachine = require('../../src/virtual-machine');
 
@@ -33,8 +35,9 @@ class TestInternalExtension {
         };
     }
 
-    go () {
+    go (args, util, blockInfo) {
         this.status.goCalled = true;
+        return blockInfo;
     }
 
     _buildAMenu () {
@@ -62,8 +65,21 @@ test('internal extension', t => {
     t.type(func, 'function');
 
     t.notOk(extension.status.goCalled);
-    func();
+    const goBlockInfo = func();
     t.ok(extension.status.goCalled);
+
+    // The 'go' block returns its own blockInfo. Make sure it matches the expected info.
+    // Note that the extension parser fills in missing fields so there are more fields here than in `getInfo`.
+    const expectedBlockInfo = {
+        arguments: {},
+        blockAllThreads: false,
+        blockType: BlockType.COMMAND,
+        func: goBlockInfo.func, // Cheat since we don't have a good way to ensure we generate the same function
+        opcode: 'go',
+        terminal: false,
+        text: 'go'
+    };
+    t.deepEqual(goBlockInfo, expectedBlockInfo);
 
     // There should be 2 menus - one is an array, one is the function to call.
     t.equal(vm.runtime._blockInfo[0].menus.length, 2);
@@ -85,13 +101,16 @@ test('load sync', t => {
     t.equal(vm.runtime._blockInfo.length, 1);
 
     // blocks should be an array of two items: a button pseudo-block and a reporter block.
-    t.equal(vm.runtime._blockInfo[0].blocks.length, 2);
+    t.equal(vm.runtime._blockInfo[0].blocks.length, 3);
     t.type(vm.runtime._blockInfo[0].blocks[0].info, 'object');
     t.type(vm.runtime._blockInfo[0].blocks[0].info.func, 'MAKE_A_VARIABLE');
     t.equal(vm.runtime._blockInfo[0].blocks[0].info.blockType, 'button');
     t.type(vm.runtime._blockInfo[0].blocks[1].info, 'object');
     t.equal(vm.runtime._blockInfo[0].blocks[1].info.opcode, 'exampleOpcode');
     t.equal(vm.runtime._blockInfo[0].blocks[1].info.blockType, 'reporter');
+    t.type(vm.runtime._blockInfo[0].blocks[2].info, 'object');
+    t.equal(vm.runtime._blockInfo[0].blocks[2].info.opcode, 'exampleWithInlineImage');
+    t.equal(vm.runtime._blockInfo[0].blocks[2].info.blockType, 'command');
 
     // Test the opcode function
     t.equal(vm.runtime._blockInfo[0].blocks[1].info.func(), 'no stage yet');

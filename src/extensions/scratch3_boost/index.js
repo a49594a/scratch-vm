@@ -93,26 +93,53 @@ const BoostPortFeedback = {
  * @readonly
  * @enum {number}
  */
-const BoostPort = {
+
+const BoostPort10000223OrOlder = {
     A: 55,
     B: 56,
     C: 1,
     D: 2
 };
 
+const BoostPort10000224OrNewer = {
+    A: 0,
+    B: 1,
+    C: 2,
+    D: 3
+};
+
+// Set default port mapping to support the newer firmware
+let BoostPort = BoostPort10000224OrNewer;
+
 /**
- * Enum for indexed colors read by the Boost Vision Sensor
+ * Ids for each color sensor value used by the extension.
+ * @readonly
+ * @enum {string}
+ */
+const BoostColor = {
+    ANY: 'any',
+    NONE: 'none',
+    RED: 'red',
+    BLUE: 'blue',
+    GREEN: 'green',
+    YELLOW: 'yellow',
+    WHITE: 'white',
+    BLACK: 'black'
+};
+
+/**
+ * Enum for indices for each color sensed by the Boost vision sensor.
  * @readonly
  * @enum {number}
  */
-const BoostColor = {
-    NONE: 255,
-    RED: 9,
-    BLUE: 3,
-    GREEN: 5,
-    YELLOW: 7,
-    WHITE: 10,
-    BLACK: 0
+const BoostColorIndex = {
+    [BoostColor.NONE]: 255,
+    [BoostColor.RED]: 9,
+    [BoostColor.BLUE]: 3,
+    [BoostColor.GREEN]: 5,
+    [BoostColor.YELLOW]: 7,
+    [BoostColor.WHITE]: 10,
+    [BoostColor.BLACK]: 0
 };
 
 /**
@@ -139,11 +166,51 @@ const BoostMessage = {
 };
 
 /**
+ * Enum for Hub Property Types
+ * @readonly
+ * @enum {number}
+ */
+
+const BoostHubProperty = {
+    ADVERTISEMENT_NAME: 0x01,
+    BUTTON: 0x02,
+    FW_VERSION: 0x03,
+    HW_VERSION: 0x04,
+    RSSI: 0x05,
+    BATTERY_VOLTAGE: 0x06,
+    BATTERY_TYPE: 0x07,
+    MANUFACTURER_NAME: 0x08,
+    RADIO_FW_VERSION: 0x09,
+    LEGO_WP_VERSION: 0x0A,
+    SYSTEM_TYPE_ID: 0x0B,
+    HW_NETWORK_ID: 0x0C,
+    PRIMARY_MAC: 0x0D,
+    SECONDARY_MAC: 0x0E,
+    HW_NETWORK_FAMILY: 0x0F
+};
+
+/**
+ * Enum for Hub Property Operations
+ * @readonly
+ * @enum {number}
+ */
+
+const BoostHubPropertyOperation = {
+    SET: 0x01,
+    ENABLE_UPDATES: 0x02,
+    DISABLE_UPDATES: 0x03,
+    RESET: 0x04,
+    REQUEST_UPDATE: 0x05,
+    UPDATE: 0x06
+};
+
+/**
  * Enum for Motor Subcommands (for 0x81)
  * @readonly
  * @enum {number}
  */
 const BoostOutputSubCommand = {
+    START_POWER: 0x01,
     START_POWER_PAIR: 0x02,
     SET_ACC_TIME: 0x05,
     SET_DEC_TIME: 0x06,
@@ -217,6 +284,17 @@ const BoostMode = {
     COLOR: 0, // Read indexed colors from Vision Sensor
     MOTOR_SENSOR: 2, // Set motors to report their position
     UNKNOWN: 0 // Anything else will use the default mode (mode 0)
+};
+
+/**
+ * Enum for Boost motor states.
+ * @param {number}
+ */
+const BoostMotorState = {
+    OFF: 0,
+    ON_FOREVER: 1,
+    ON_FOR_TIME: 2,
+    ON_FOR_ROTATION: 3
 };
 
 /**
@@ -297,7 +375,7 @@ class BoostMotor {
          * @type {boolean}
          * @private
          */
-        this._status = BoostPortFeedback.IDLE;
+        this._status = BoostMotorState.OFF;
 
         /**
          * If the motor has been turned on or is actively braking for a specific duration, this is the timeout ID for
@@ -305,36 +383,36 @@ class BoostMotor {
          * @type {Object}
          * @private
          */
-        this._pendingTimeoutId = null;
+        this._pendingDurationTimeoutId = null;
 
         /**
-         * The starting time for the pending timeout.
+         * The starting time for the pending duration timeout.
          * @type {number}
          * @private
          */
-        this._pendingTimeoutStartTime = null;
+        this._pendingDurationTimeoutStartTime = null;
 
         /**
-         * The delay/duration of the pending timeout.
+         * The delay/duration of the pending duration timeout.
          * @type {number}
          * @private
          */
-        this._pendingTimeoutDelay = null;
+        this._pendingDurationTimeoutDelay = null;
 
         /**
          * The target position of a turn-based command.
          * @type {number}
          * @private
          */
-        this._pendingPositionDestination = null;
+        this._pendingRotationDestination = null;
 
         /**
-         * If the motor has been turned on run for a specific duration,
-         * this is the function that will be called once Scratch VM gets a notification from the Move Hub.
+         * If the motor has been turned on run for a specific rotation, this is the function
+         * that will be called once Scratch VM gets a notification from the Move Hub.
          * @type {Object}
          * @private
          */
-        this._pendingPromiseFunction = null;
+        this._pendingRotationPromise = null;
 
         this.turnOff = this.turnOff.bind(this);
     }
@@ -394,55 +472,61 @@ class BoostMotor {
     }
 
     /**
-     * @return {boolean} - true if this motor is currently moving, false if this motor is off or braking.
+     * @return {BoostMotorState} - the motor's current state.
      */
-    get isOn () {
-        if (this._status & (BoostPortFeedback.BUSY_OR_FULL ^ BoostPortFeedback.IN_PROGRESS)) {
-            return true;
-        }
-        return false;
+    get status () {
+        return this._status;
     }
 
     /**
-     * @return {number} - time, in milliseconds, of when the pending timeout began.
+     * @param {BoostMotorState} value - set this motor's state.
      */
-    get pendingTimeoutStartTime () {
-        return this._pendingTimeoutStartTime;
+    set status (value) {
+        this._clearRotationState();
+        this._clearDurationTimeout();
+        this._status = value;
     }
 
     /**
-     * @return {number} - delay, in milliseconds, of the pending timeout.
+     * @return {number} - time, in milliseconds, of when the pending duration timeout began.
      */
-    get pendingTimeoutDelay () {
-        return this._pendingTimeoutDelay;
+    get pendingDurationTimeoutStartTime () {
+        return this._pendingDurationTimeoutStartTime;
     }
 
     /**
-     * @return {number} - delay, in milliseconds, of the pending timeout.
+     * @return {number} - delay, in milliseconds, of the pending duration timeout.
      */
-    get pendingPositionDestination () {
-        return this._pendingPositionDestination;
+    get pendingDurationTimeoutDelay () {
+        return this._pendingDurationTimeoutDelay;
     }
 
     /**
-     * @return {boolean} - true if this motor is currently moving, false if this motor is off or braking.
+     * @return {number} - target position, in degrees, of the pending rotation.
      */
-    get pendingPromiseFunction () {
-        return this._pendingPromiseFunction;
+    get pendingRotationDestination () {
+        return this._pendingRotationDestination;
     }
 
     /**
-     * @param {function} func - function to resolve promise
+     * @return {Promise} - the Promise function for the pending rotation.
      */
-    set pendingPromiseFunction (func) {
-        this._pendingPromiseFunction = func;
+    get pendingRotationPromise () {
+        return this._pendingRotationPromise;
     }
 
     /**
-     * Turn this motor on indefinitely.
+     * @param {function} func - function to resolve pending rotation Promise
      */
-    turnOn () {
-        if (this._power === 0) return;
+    set pendingRotationPromise (func) {
+        this._pendingRotationPromise = func;
+    }
+
+    /**
+     * Turn this motor on indefinitely
+     * @private
+     */
+    _turnOn () {
         const cmd = this._parent.generateOutputCommand(
             this._index,
             BoostOutputExecution.EXECUTE_IMMEDIATELY,
@@ -452,11 +536,16 @@ class BoostMotor {
                 MathUtil.clamp(this.power + BoostMotorMaxPowerAdd, 0, 100),
                 BoostMotorProfile.DO_NOT_USE
             ]);
-        this._status = BoostPortFeedback.BUSY_OR_FULL;
 
         this._parent.send(BoostBLE.characteristic, cmd);
+    }
 
-        this._clearTimeout();
+    /**
+     * Turn this motor on indefinitely
+     */
+    turnOnForever () {
+        this.status = BoostMotorState.ON_FOREVER;
+        this._turnOn();
     }
 
     /**
@@ -464,11 +553,10 @@ class BoostMotor {
      * @param {number} milliseconds - run the motor for this long.
      */
     turnOnFor (milliseconds) {
-        if (this.power === 0) return;
-
         milliseconds = Math.max(0, milliseconds);
-        this.turnOn();
-        this._setNewTimeout(this.turnOff, milliseconds);
+        this.status = BoostMotorState.ON_FOR_TIME;
+        this._turnOn();
+        this._setNewDurationTimeout(this.turnOff, milliseconds);
     }
 
     /**
@@ -477,11 +565,6 @@ class BoostMotor {
      * @param {number} direction - rotate in this direction
      */
     turnOnForDegrees (degrees, direction) {
-        if (this.power === 0) {
-            this.pendingPromiseFunction();
-            return;
-        }
-        
         degrees = Math.max(0, degrees);
 
         const cmd = this._parent.generateOutputCommand(
@@ -497,8 +580,8 @@ class BoostMotor {
             ]
         );
 
-        this._pendingPositionOrigin = this.position;
-        this._pendingPositionDestination = this.position + (degrees * this.direction * direction);
+        this.status = BoostMotorState.ON_FOR_ROTATION;
+        this._pendingRotationDestination = this.position + (degrees * this.direction * direction);
         this._parent.send(BoostBLE.characteristic, cmd);
     }
 
@@ -507,19 +590,16 @@ class BoostMotor {
      * @param {boolean} [useLimiter=true] - if true, use the rate limiter
      */
     turnOff (useLimiter = true) {
-        if (this.power === 0) return;
-
         const cmd = this._parent.generateOutputCommand(
             this._index,
-            BoostOutputExecution.EXECUTE_IMMEDIATELY ^ BoostOutputExecution.COMMAND_FEEDBACK,
-            BoostOutputSubCommand.START_SPEED,
+            BoostOutputExecution.EXECUTE_IMMEDIATELY,
+            BoostOutputSubCommand.START_POWER,
             [
-                BoostMotorEndState.FLOAT,
-                BoostMotorEndState.FLOAT,
-                BoostMotorProfile.DO_NOT_USE
+                BoostMotorEndState.FLOAT
             ]
         );
 
+        this.status = BoostMotorState.OFF;
         this._parent.send(BoostBLE.characteristic, cmd, useLimiter);
     }
 
@@ -527,12 +607,12 @@ class BoostMotor {
      * Clear the motor action timeout, if any. Safe to call even when there is no pending timeout.
      * @private
      */
-    _clearTimeout () {
-        if (this._pendingTimeoutId !== null) {
-            clearTimeout(this._pendingTimeoutId);
-            this._pendingTimeoutId = null;
-            this._pendingTimeoutStartTime = null;
-            this._pendingTimeoutDelay = null;
+    _clearDurationTimeout () {
+        if (this._pendingDurationTimeoutId !== null) {
+            clearTimeout(this._pendingDurationTimeoutId);
+            this._pendingDurationTimeoutId = null;
+            this._pendingDurationTimeoutStartTime = null;
+            this._pendingDurationTimeoutDelay = null;
         }
     }
 
@@ -542,19 +622,32 @@ class BoostMotor {
      * @param {int} delay - wait this many milliseconds before calling the callback.
      * @private
      */
-    _setNewTimeout (callback, delay) {
-        this._clearTimeout();
+    _setNewDurationTimeout (callback, delay) {
+        this._clearDurationTimeout();
         const timeoutID = setTimeout(() => {
-            if (this._pendingTimeoutId === timeoutID) {
-                this._pendingTimeoutId = null;
-                this._pendingTimeoutStartTime = null;
-                this._pendingTimeoutDelay = null;
+            if (this._pendingDurationTimeoutId === timeoutID) {
+                this._pendingDurationTimeoutId = null;
+                this._pendingDurationTimeoutStartTime = null;
+                this._pendingDurationTimeoutDelay = null;
             }
             callback();
         }, delay);
-        this._pendingTimeoutId = timeoutID;
-        this._pendingTimeoutStartTime = Date.now();
-        this._pendingTimeoutDelay = delay;
+        this._pendingDurationTimeoutId = timeoutID;
+        this._pendingDurationTimeoutStartTime = Date.now();
+        this._pendingDurationTimeoutDelay = delay;
+    }
+
+    /**
+     * Clear the motor states related to rotation-based commands, if any.
+     * Safe to call even when there is no pending promise function.
+     * @private
+     */
+    _clearRotationState () {
+        if (this._pendingRotationPromise !== null) {
+            this._pendingRotationPromise();
+            this._pendingRotationPromise = null;
+        }
+        this._pendingRotationDestination = null;
     }
 }
 
@@ -634,7 +727,7 @@ class Boost {
          */
         this._pingDeviceId = null;
 
-        this.disconnect = this.disconnect.bind(this);
+        this.reset = this.reset.bind(this);
         this._onConnect = this._onConnect.bind(this);
         this._onMessage = this._onMessage.bind(this);
         this._pingDevice = this._pingDevice.bind(this);
@@ -659,6 +752,23 @@ class Boost {
      */
     get color () {
         return this._sensors.color;
+    }
+
+    /**
+     * @return {number} - the previous color value received from the vision sensor.
+     */
+    get previousColor () {
+        return this._sensors.previousColor;
+    }
+
+    /**
+     * Look up the color id for an index received from the vision sensor.
+     * @param {number} index - the color index to look up.
+     * @return {BoostColor} the color id for this index.
+     */
+    boostColorForIndex (index) {
+        const colorForIndex = Object.keys(BoostColorIndex).find(key => BoostColorIndex[key] === index);
+        return colorForIndex || BoostColor.NONE;
     }
 
     /**
@@ -739,16 +849,16 @@ class Boost {
         }
         this._ble = new BLE(this._runtime, this._extensionId, {
             filters: [{
-                services: [BoostBLE.service]/* ,
+                services: [BoostBLE.service],
                 manufacturerData: {
-                    0: {
-                        dataPrefix: [0x97, 0x03, 0x00, 0x40],
-                        mask: [0xFF, 0xFF, 0, 0xFF]
+                    0x0397: {
+                        dataPrefix: [0x00, 0x40],
+                        mask: [0x00, 0xFF]
                     }
-                } commented out until feature is enabled in scratch-link */
+                }
             }],
             optionalServices: []
-        }, this._onConnect, this.disconnect);
+        }, this._onConnect, this.reset);
     }
 
     /**
@@ -762,9 +872,20 @@ class Boost {
     }
 
     /**
-     * Disconnects from the current BLE socket.
+     * Disconnects from the current BLE socket and resets state.
      */
     disconnect () {
+        if (this._ble) {
+            this._ble.disconnect();
+        }
+
+        this.reset();
+    }
+
+    /**
+     * Reset all the state and timeout/interval ids.
+     */
+    reset () {
         this._ports = [];
         this._motors = [];
         this._sensors = {
@@ -773,10 +894,6 @@ class Boost {
             color: BoostColor.NONE,
             previousColor: BoostColor.NONE
         };
-
-        if (this._ble) {
-            this._ble.disconnect();
-        }
 
         if (this._pingDeviceId) {
             window.clearInterval(this._pingDeviceId);
@@ -877,6 +994,19 @@ class Boost {
             this._onMessage
         );
         this._pingDeviceId = window.setInterval(this._pingDevice, BoostPingInterval);
+
+        // Send a request for firmware version.
+        setTimeout(() => {
+            const command = [
+                0x00, // Hub ID
+                BoostMessage.HUB_PROPERTIES,
+                BoostHubProperty.FW_VERSION,
+                BoostHubPropertyOperation.REQUEST_UPDATE
+            ];
+            command.unshift(command.length + 1);
+            this.send(BoostBLE.characteristic, command, false);
+        }, 500);
+
     }
 
     /**
@@ -900,10 +1030,29 @@ class Boost {
         const portID = data[3];
 
         switch (messageType) {
+        
+        case BoostMessage.HUB_PROPERTIES: {
+            const property = data[3];
+            switch (property) {
+            case BoostHubProperty.FW_VERSION: {
+                // Establish firmware version 1.0.00.0224 as a 32-bit signed integer (little endian)
+                const fwVersion10000224 = int32ArrayToNumber([0x24, 0x02, 0x00, 0x10]);
+                const fwHub = int32ArrayToNumber(data.slice(5, data.length));
+                if (fwHub < fwVersion10000224) {
+                    BoostPort = BoostPort10000223OrOlder;
+                    log.info('Move Hub firmware older than version 1.0.00.0224 detected. Using old port mapping.');
+                } else {
+                    BoostPort = BoostPort10000224OrNewer;
+                }
+                break;
+            }
+            }
+            break;
+        }
         case BoostMessage.HUB_ATTACHED_IO: { // IO Attach/Detach events
             const event = data[4];
             const typeId = data[5];
-        
+
             switch (event) {
             case BoostIOEvent.ATTACHED:
                 this._registerSensorOrMotor(portID, typeId);
@@ -918,7 +1067,7 @@ class Boost {
         }
         case BoostMessage.PORT_VALUE: {
             const type = this._ports[portID];
-            
+
             switch (type) {
             case BoostIO.TILT:
                 this._sensors.tiltX = data[4];
@@ -929,7 +1078,8 @@ class Boost {
                 if (this._colorSamples.length > BoostColorSampleSize) {
                     this._colorSamples.pop();
                     if (this._colorSamples.every((v, i, arr) => v === arr[0])) {
-                        this._sensors.color = this._colorSamples[0];
+                        this._sensors.previousColor = this._sensors.color;
+                        this._sensors.color = this.boostColorForIndex(this._colorSamples[0]);
                     } else {
                         this._sensors.color = BoostColor.NONE;
                     }
@@ -943,6 +1093,7 @@ class Boost {
                 break;
             case BoostIO.CURRENT:
             case BoostIO.VOLTAGE:
+            case BoostIO.LED:
                 break;
             default:
                 log.warn(`Unknown sensor value! Type: ${type}`);
@@ -953,13 +1104,13 @@ class Boost {
             const feedback = data[4];
             const motor = this.motor(portID);
             if (motor) {
-                motor._status = feedback;
                 // Makes sure that commands resolve both when they actually complete and when they fail
                 const isBusy = feedback & BoostPortFeedback.IN_PROGRESS;
                 const commandCompleted = feedback & (BoostPortFeedback.COMPLETED ^ BoostPortFeedback.DISCARDED);
-                if (!isBusy && commandCompleted && motor.pendingPromiseFunction) {
-                    motor.pendingPromiseFunction();
-                    motor.pendingPromiseFunction = null;
+                if (!isBusy && commandCompleted) {
+                    if (motor.status === BoostMotorState.ON_FOR_ROTATION) {
+                        motor.status = BoostMotorState.OFF;
+                    }
                 }
             }
             break;
@@ -1029,7 +1180,7 @@ class Boost {
         default:
             mode = BoostMode.UNKNOWN;
         }
-        
+
         const cmd = this.generateInputCommand(
             portID,
             mode,
@@ -1097,21 +1248,6 @@ const BoostTiltDirection = {
 };
 
 /**
- * Enum for vision sensor colors.
- * @readonly
- * @enum {string}
- */
-const BoostColorLabel = {
-    ANY: 'any',
-    RED: 'red',
-    BLUE: 'blue',
-    GREEN: 'green',
-    YELLOW: 'yellow',
-    BLACK: 'black',
-    WHITE: 'white'
-};
-
-/**
  * Scratch 3.0 blocks to interact with a LEGO Boost peripheral.
  */
 class Scratch3BoostBlocks {
@@ -1151,7 +1287,7 @@ class Scratch3BoostBlocks {
     getInfo () {
         return {
             id: Scratch3BoostBlocks.EXTENSION_ID,
-            name: 'Boost',
+            name: 'BOOST',
             blockIconURI: iconURI,
             showStatusButton: true,
             blocks: [
@@ -1288,7 +1424,7 @@ class Scratch3BoostBlocks {
                     opcode: 'whenColor',
                     text: formatMessage({
                         id: 'boost.whenColor',
-                        default: 'when [COLOR] color seen',
+                        default: 'when [COLOR] brick seen',
                         description: 'check for when color'
                     }),
                     blockType: BlockType.HAT,
@@ -1296,18 +1432,25 @@ class Scratch3BoostBlocks {
                         COLOR: {
                             type: ArgumentType.STRING,
                             menu: 'COLOR',
-                            defaultValue: BoostColorLabel.ANY
+                            defaultValue: BoostColor.ANY
                         }
                     }
                 },
                 {
-                    opcode: 'getColor',
+                    opcode: 'seeingColor',
                     text: formatMessage({
-                        id: 'boost.getColor',
-                        default: 'color',
-                        description: 'the color returned by the vision sensor'
+                        id: 'boost.seeingColor',
+                        default: 'seeing [COLOR] brick?',
+                        description: 'is the color sensor seeing a certain color?'
                     }),
-                    blockType: BlockType.REPORTER
+                    blockType: BlockType.BOOLEAN,
+                    arguments: {
+                        COLOR: {
+                            type: ArgumentType.STRING,
+                            menu: 'COLOR',
+                            defaultValue: BoostColor.ANY
+                        }
+                    }
                 },
                 {
                     opcode: 'whenTilted',
@@ -1359,247 +1502,227 @@ class Scratch3BoostBlocks {
                 }
             ],
             menus: {
-                MOTOR_ID: [
-                    {
-                        text: formatMessage({
-                            id: 'boost.motorId.a',
-                            default: BoostMotorLabel.A,
-                            description: `label for motor A element in motor menu for LEGO Boost extension`
-                        }),
-                        value: BoostMotorLabel.A
-                    },
-                    {
-                        text: formatMessage({
-                            id: 'boost.motorId.b',
-                            default: BoostMotorLabel.B,
-                            description: `label for motor B element in motor menu for LEGO Boost extension`
-                        }),
-                        value: BoostMotorLabel.B
-                    },
-                    {
-                        text: formatMessage({
-                            id: 'boost.motorId.c',
-                            default: BoostMotorLabel.C,
-                            description: `label for motor C element in motor menu for LEGO Boost extension`
-                        }),
-                        value: BoostMotorLabel.C
-                    },
-                    {
-                        text: formatMessage({
-                            id: 'boost.motorId.d',
-                            default: BoostMotorLabel.D,
-                            description: `label for motor D element in motor menu for LEGO Boost extension`
-                        }),
-                        value: BoostMotorLabel.D
-                    },
-                    {
-                        text: formatMessage({
-                            id: 'boost.motorId.ab',
-                            default: BoostMotorLabel.AB,
-                            description: `label for motor A and B element in motor menu for LEGO Boost extension`
-                        }),
-                        value: BoostMotorLabel.AB
-                    },
-                    {
-                        text: formatMessage({
-                            id: 'boost.motorId.all',
-                            default: BoostMotorLabel.ALL,
-                            description: 'label for all motors element in motor menu for LEGO Boost extension'
-                        }),
-                        value: BoostMotorLabel.ALL
-                    }
-                ],
-                MOTOR_REPORTER_ID: [
-                    {
-                        text: formatMessage({
-                            id: 'boost.motorReporterId.a',
-                            default: BoostMotorLabel.A,
-                            description: 'label for motor A element in motor menu for LEGO Boost extension'
-                        }),
-                        value: BoostMotorLabel.A
-                    },
-                    {
-                        text: formatMessage({
-                            id: 'boost.motorReporterId.b',
-                            default: BoostMotorLabel.B,
-                            description: 'label for motor B element in motor menu for LEGO Boost extension'
-                        }),
-                        value: BoostMotorLabel.B
-                    },
-                    {
-                        text: formatMessage({
-                            id: 'boost.motorReporterId.c',
-                            default: BoostMotorLabel.C,
-                            description: 'label for motor C element in motor menu for LEGO Boost extension'
-                        }),
-                        value: BoostMotorLabel.C
-                    },
-                    {
-                        text: formatMessage({
-                            id: 'boost.motorReporterId.d',
-                            default: BoostMotorLabel.D,
-                            description: 'label for motor D element in motor menu for LEGO Boost extension'
-                        }),
-                        value: BoostMotorLabel.D
-                    }
-                ],
-                MOTOR_DIRECTION: [
-                    {
-                        text: formatMessage({
-                            id: 'boost.motorDirection.forward',
-                            default: 'this way',
-                            description: 'label for forward element in motor direction menu for LEGO Boost extension'
-                        }),
-                        value: BoostMotorDirection.FORWARD
-                    },
-                    {
-                        text: formatMessage({
-                            id: 'boost.motorDirection.backward',
-                            default: 'that way',
-                            description: 'label for backward element in motor direction menu for LEGO Boost extension'
-                        }),
-                        value: BoostMotorDirection.BACKWARD
-                    },
-                    {
-                        text: formatMessage({
-                            id: 'boost.motorDirection.reverse',
-                            default: 'reverse',
-                            description: 'label for reverse element in motor direction menu for LEGO Boost extension'
-                        }),
-                        value: BoostMotorDirection.REVERSE
-                    }
-                ],
-                TILT_DIRECTION: [
-                    {
-                        text: formatMessage({
-                            id: 'boost.tiltDirection.up',
-                            default: 'up',
-                            description: 'label for up element in tilt direction menu for LEGO Boost extension'
-                        }),
-                        value: BoostTiltDirection.UP
-                    },
-                    {
-                        text: formatMessage({
-                            id: 'boost.tiltDirection.down',
-                            default: 'down',
-                            description: 'label for down element in tilt direction menu for LEGO Boost extension'
-                        }),
-                        value: BoostTiltDirection.DOWN
-                    },
-                    {
-                        text: formatMessage({
-                            id: 'boost.tiltDirection.left',
-                            default: 'left',
-                            description: 'label for left element in tilt direction menu for LEGO Boost extension'
-                        }),
-                        value: BoostTiltDirection.LEFT
-                    },
-                    {
-                        text: formatMessage({
-                            id: 'boost.tiltDirection.right',
-                            default: 'right',
-                            description: 'label for right element in tilt direction menu for LEGO Boost extension'
-                        }),
-                        value: BoostTiltDirection.RIGHT
-                    }
-                ],
-                TILT_DIRECTION_ANY: [
-                    {
-                        text: formatMessage({
-                            id: 'boost.tiltDirection.up',
-                            default: 'up'
-                        }),
-                        value: BoostTiltDirection.UP
-                    },
-                    {
-                        text: formatMessage({
-                            id: 'boost.tiltDirection.down',
-                            default: 'down'
-                        }),
-                        value: BoostTiltDirection.DOWN
-                    },
-                    {
-                        text: formatMessage({
-                            id: 'boost.tiltDirection.left',
-                            default: 'left'
-                        }),
-                        value: BoostTiltDirection.LEFT
-                    },
-                    {
-                        text: formatMessage({
-                            id: 'boost.tiltDirection.right',
-                            default: 'right'
-                        }),
-                        value: BoostTiltDirection.RIGHT
-                    },
-                    {
-                        text: formatMessage({
-                            id: 'boost.tiltDirection.any',
-                            default: 'any',
-                            description: 'label for any element in tilt direction menu for LEGO Boost extension'
-                        }),
-                        value: BoostTiltDirection.ANY
-                    }
-                ],
-                COLOR: [
-                    {
-                        text: formatMessage({
-                            id: 'boost.color.red',
-                            default: BoostColorLabel.RED,
-                            description: BoostColorLabel.RED
-                        }),
-                        value: BoostColorLabel.RED
-                    },
-                    {
-                        text: formatMessage({
-                            id: 'boost.color.blue',
-                            default: BoostColorLabel.BLUE,
-                            description: BoostColorLabel.BLUE
-                        }),
-                        value: BoostColorLabel.BLUE
-                    },
-                    {
-                        text: formatMessage({
-                            id: 'boost.color.green',
-                            default: BoostColorLabel.GREEN,
-                            description: BoostColorLabel.GREEN
-                        }),
-                        value: BoostColorLabel.GREEN
-                    },
-                    {
-                        text: formatMessage({
-                            id: 'boost.color.yellow',
-                            default: BoostColorLabel.YELLOW,
-                            description: BoostColorLabel.YELLOW
-                        }),
-                        value: BoostColorLabel.YELLOW
-                    },
-                    {
-                        text: formatMessage({
-                            id: 'boost.color.white',
-                            default: BoostColorLabel.WHITE,
-                            desription: BoostColorLabel.WHITE
-                        }),
-                        value: BoostColorLabel.WHITE
-                    },
-                    {
-                        text: formatMessage({
-                            id: 'boost.color.black',
-                            default: BoostColorLabel.BLACK,
-                            description: BoostColorLabel.BLACK
-                        }),
-                        value: BoostColorLabel.BLACK
-                    },
-                    {
-                        text: formatMessage({
-                            id: 'boost.color.any',
-                            default: BoostColorLabel.ANY,
-                            description: BoostColorLabel.ANY
-                        }),
-                        value: BoostColorLabel.ANY
-                    }
-                ],
-                OP: ['<', '>']
+                MOTOR_ID: {
+                    acceptReporters: true,
+                    items: [
+                        {
+                            text: 'A',
+                            value: BoostMotorLabel.A
+                        },
+                        {
+                            text: 'B',
+                            value: BoostMotorLabel.B
+                        },
+                        {
+                            text: 'C',
+                            value: BoostMotorLabel.C
+                        },
+                        {
+                            text: 'D',
+                            value: BoostMotorLabel.D
+                        },
+                        {
+                            text: 'AB',
+                            value: BoostMotorLabel.AB
+                        },
+                        {
+                            text: 'ABCD',
+                            value: BoostMotorLabel.ALL
+                        }
+                    ]
+                },
+                MOTOR_REPORTER_ID: {
+                    acceptReporters: true,
+                    items: [
+                        {
+                            text: 'A',
+                            value: BoostMotorLabel.A
+                        },
+                        {
+                            text: 'B',
+                            value: BoostMotorLabel.B
+                        },
+                        {
+                            text: 'C',
+                            value: BoostMotorLabel.C
+                        },
+                        {
+                            text: 'D',
+                            value: BoostMotorLabel.D
+                        }
+                    ]
+                },
+                MOTOR_DIRECTION: {
+                    acceptReporters: true,
+                    items: [
+                        {
+                            text: formatMessage({
+                                id: 'boost.motorDirection.forward',
+                                default: 'this way',
+                                description:
+                                    'label for forward element in motor direction menu for LEGO Boost extension'
+                            }),
+                            value: BoostMotorDirection.FORWARD
+                        },
+                        {
+                            text: formatMessage({
+                                id: 'boost.motorDirection.backward',
+                                default: 'that way',
+                                description:
+                                    'label for backward element in motor direction menu for LEGO Boost extension'
+                            }),
+                            value: BoostMotorDirection.BACKWARD
+                        },
+                        {
+                            text: formatMessage({
+                                id: 'boost.motorDirection.reverse',
+                                default: 'reverse',
+                                description:
+                                    'label for reverse element in motor direction menu for LEGO Boost extension'
+                            }),
+                            value: BoostMotorDirection.REVERSE
+                        }
+                    ]
+                },
+                TILT_DIRECTION: {
+                    acceptReporters: true,
+                    items: [
+                        {
+                            text: formatMessage({
+                                id: 'boost.tiltDirection.up',
+                                default: 'up',
+                                description: 'label for up element in tilt direction menu for LEGO Boost extension'
+                            }),
+                            value: BoostTiltDirection.UP
+                        },
+                        {
+                            text: formatMessage({
+                                id: 'boost.tiltDirection.down',
+                                default: 'down',
+                                description: 'label for down element in tilt direction menu for LEGO Boost extension'
+                            }),
+                            value: BoostTiltDirection.DOWN
+                        },
+                        {
+                            text: formatMessage({
+                                id: 'boost.tiltDirection.left',
+                                default: 'left',
+                                description: 'label for left element in tilt direction menu for LEGO Boost extension'
+                            }),
+                            value: BoostTiltDirection.LEFT
+                        },
+                        {
+                            text: formatMessage({
+                                id: 'boost.tiltDirection.right',
+                                default: 'right',
+                                description: 'label for right element in tilt direction menu for LEGO Boost extension'
+                            }),
+                            value: BoostTiltDirection.RIGHT
+                        }
+                    ]
+                },
+                TILT_DIRECTION_ANY: {
+                    acceptReporters: true,
+                    items: [
+                        {
+                            text: formatMessage({
+                                id: 'boost.tiltDirection.up',
+                                default: 'up'
+                            }),
+                            value: BoostTiltDirection.UP
+                        },
+                        {
+                            text: formatMessage({
+                                id: 'boost.tiltDirection.down',
+                                default: 'down'
+                            }),
+                            value: BoostTiltDirection.DOWN
+                        },
+                        {
+                            text: formatMessage({
+                                id: 'boost.tiltDirection.left',
+                                default: 'left'
+                            }),
+                            value: BoostTiltDirection.LEFT
+                        },
+                        {
+                            text: formatMessage({
+                                id: 'boost.tiltDirection.right',
+                                default: 'right'
+                            }),
+                            value: BoostTiltDirection.RIGHT
+                        },
+                        {
+                            text: formatMessage({
+                                id: 'boost.tiltDirection.any',
+                                default: 'any',
+                                description: 'label for any element in tilt direction menu for LEGO Boost extension'
+                            }),
+                            value: BoostTiltDirection.ANY
+                        }
+                    ]
+                },
+                COLOR: {
+                    acceptReporters: true,
+                    items: [
+                        {
+                            text: formatMessage({
+                                id: 'boost.color.red',
+                                default: 'red',
+                                description: 'the color red'
+                            }),
+                            value: BoostColor.RED
+                        },
+                        {
+                            text: formatMessage({
+                                id: 'boost.color.blue',
+                                default: 'blue',
+                                description: 'the color blue'
+                            }),
+                            value: BoostColor.BLUE
+                        },
+                        {
+                            text: formatMessage({
+                                id: 'boost.color.green',
+                                default: 'green',
+                                description: 'the color green'
+                            }),
+                            value: BoostColor.GREEN
+                        },
+                        {
+                            text: formatMessage({
+                                id: 'boost.color.yellow',
+                                default: 'yellow',
+                                description: 'the color yellow'
+                            }),
+                            value: BoostColor.YELLOW
+                        },
+                        {
+                            text: formatMessage({
+                                id: 'boost.color.white',
+                                default: 'white',
+                                desription: 'the color white'
+                            }),
+                            value: BoostColor.WHITE
+                        },
+                        {
+                            text: formatMessage({
+                                id: 'boost.color.black',
+                                default: 'black',
+                                description: 'the color black'
+                            }),
+                            value: BoostColor.BLACK
+                        },
+                        {
+                            text: formatMessage({
+                                id: 'boost.color.any',
+                                default: 'any color',
+                                description: 'any color'
+                            }),
+                            value: BoostColor.ANY
+                        }
+                    ]
+                }
             }
         };
     }
@@ -1618,9 +1741,7 @@ class Scratch3BoostBlocks {
         return new Promise(resolve => {
             this._forEachMotor(args.MOTOR_ID, motorIndex => {
                 const motor = this._peripheral.motor(motorIndex);
-                if (motor) {
-                    motor.turnOnFor(durationMS);
-                }
+                if (motor) motor.turnOnFor(durationMS);
             });
 
             // Run for some time even when no motor is connected
@@ -1654,14 +1775,11 @@ class Scratch3BoostBlocks {
         const promises = motors.map(portID => {
             const motor = this._peripheral.motor(portID);
             if (motor) {
-                if (motor.pendingPromiseFunction) {
-                    // If there's already a promise for this motor it must be resolved to avoid hanging blocks.
-                    motor.pendingPromiseFunction();
-                    motor.pendingPromiseFunction = null;
-                }
+                // to avoid a hanging block if power is 0, return an immediately resolving promise.
+                if (motor.power === 0) return Promise.resolve();
                 return new Promise(resolve => {
-                    motor.pendingPromiseFunction = resolve;
                     motor.turnOnForDegrees(degrees, sign);
+                    motor.pendingRotationPromise = resolve;
                 });
             }
             return null;
@@ -1683,9 +1801,7 @@ class Scratch3BoostBlocks {
         // TODO: cast args.MOTOR_ID?
         this._forEachMotor(args.MOTOR_ID, motorIndex => {
             const motor = this._peripheral.motor(motorIndex);
-            if (motor) {
-                motor.turnOn();
-            }
+            if (motor) motor.turnOnForever();
         });
 
         return new Promise(resolve => {
@@ -1705,9 +1821,7 @@ class Scratch3BoostBlocks {
         // TODO: cast args.MOTOR_ID?
         this._forEachMotor(args.MOTOR_ID, motorIndex => {
             const motor = this._peripheral.motor(motorIndex);
-            if (motor) {
-                motor.turnOff();
-            }
+            if (motor) motor.turnOff();
         });
 
         return new Promise(resolve => {
@@ -1722,6 +1836,7 @@ class Scratch3BoostBlocks {
      * @param {object} args - the block's arguments.
      * @property {MotorID} MOTOR_ID - the motor(s) to be affected.
      * @property {int} POWER - the new power level for the motor(s).
+     * @return {Promise} - returns a promise to make sure the block yields.
      */
     setMotorPower (args) {
         // TODO: cast args.MOTOR_ID?
@@ -1729,17 +1844,21 @@ class Scratch3BoostBlocks {
             const motor = this._peripheral.motor(motorIndex);
             if (motor) {
                 motor.power = MathUtil.clamp(Cast.toNumber(args.POWER), 0, 100);
-                if (motor.isOn) {
-                    if (motor.pendingTimeoutDelay) {
-                        motor.turnOnFor(motor.pendingTimeoutStartTime + motor.pendingTimeoutDelay - Date.now());
-                    } else if (motor.pendingPromiseFunction) {
-                        const p = Math.abs(motor.pendingPositionDestination - motor.position);
-                        motor.turnOnForDegrees(p, Math.sign(p));
-                    } else {
-                        motor.turnOn();
-                    }
+                switch (motor.status) {
+                case BoostMotorState.ON_FOREVER:
+                    motor.turnOnForever();
+                    break;
+                case BoostMotorState.ON_FOR_TIME:
+                    motor.turnOnFor(motor.pendingDurationTimeoutStartTime +
+                        motor.pendingDurationTimeoutDelay - Date.now());
+                    break;
                 }
             }
+        });
+        return new Promise(resolve => {
+            window.setTimeout(() => {
+                resolve();
+            }, BoostBLE.sendInterval);
         });
     }
 
@@ -1749,6 +1868,7 @@ class Scratch3BoostBlocks {
      * @param {object} args - the block's arguments.
      * @property {MotorID} MOTOR_ID - the motor(s) to be affected.
      * @property {MotorDirection} MOTOR_DIRECTION - the new direction for the motor(s).
+     * @return {Promise} - returns a promise to make sure the block yields.
      */
     setMotorDirection (args) {
         // TODO: cast args.MOTOR_ID?
@@ -1770,17 +1890,23 @@ class Scratch3BoostBlocks {
                     break;
                 }
                 // keep the motor on if it's running, and update the pending timeout if needed
-                if (motor.isOn) {
-                    if (motor.pendingTimeoutDelay) {
-                        motor.turnOnFor(motor.pendingTimeoutStartTime + motor.pendingTimeoutDelay - Date.now());
-                    } else if (motor.pendingPromiseFunction) {
-                        const p = Math.abs(motor.pendingPositionDestination - motor.position);
-                        motor.turnOnForDegrees(p, Math.sign(p));
-                    } else {
-                        motor.turnOn();
+                if (motor) {
+                    switch (motor.status) {
+                    case BoostMotorState.ON_FOREVER:
+                        motor.turnOnForever();
+                        break;
+                    case BoostMotorState.ON_FOR_TIME:
+                        motor.turnOnFor(motor.pendingDurationTimeoutStartTime +
+                            motor.pendingDurationTimeoutDelay - Date.now());
+                        break;
                     }
                 }
             }
+        });
+        return new Promise(resolve => {
+            window.setTimeout(() => {
+                resolve();
+            }, BoostBLE.sendInterval);
         });
     }
 
@@ -1791,7 +1917,7 @@ class Scratch3BoostBlocks {
     getMotorPosition (args) {
         let portID = null;
         switch (args.MOTOR_REPORTER_ID) {
-            
+
         case BoostMotorLabel.A:
             portID = BoostPort.A;
             break;
@@ -1808,8 +1934,14 @@ class Scratch3BoostBlocks {
             log.warn('Asked for a motor position that doesnt exist!');
             return false;
         }
-        if (portID && this._peripheral.motor(portID)) {
-            return MathUtil.wrapClamp(this._peripheral.motor(portID).position, 0, 360);
+        if (portID !== null && this._peripheral.motor(portID)) {
+            let val = this._peripheral.motor(portID).position;
+            // Boost motor A position direction is reversed by design
+            // so we have to reverse the position here
+            if (portID === BoostPort.A) {
+                val *= -1;
+            }
+            return MathUtil.wrapClamp(val, 0, 360);
         }
         return 0;
     }
@@ -1919,45 +2051,36 @@ class Scratch3BoostBlocks {
     }
 
     /**
-     * Test whether the tilt sensor is currently tilted.
+     * Edge-triggering hat function, for when the vision sensor is detecting
+     * a certain color.
      * @param {object} args - the block's arguments.
-     * @property {Color} COLOR - the color to test.
-     * @return {boolean} - true if the tilt sensor is tilted past a threshold in the specified direction.
+     * @return {boolean} - true when the color sensor senses the specified color.
      */
     whenColor (args) {
-        return this._isColor(args);
-    }
-
-    /**
-     * @return {number} - the vision sensor's color value. Indexed LEGO brick colors.
-     */
-    getColor () {
-        // To get a string representation, lookup the key of the BoostColor-enum value
-        return Object.keys(BoostColor).find(key => BoostColor[key] === this._peripheral.color)
-            .toLowerCase();
-    }
-
-    /**
-     * Test whether the vision sensor is detecting a certain color.
-     * @param {number} args - the color to test.
-     * @return {boolean} - true when the color sensor senses the specified color.
-     * @private
-     */
-    _isColor (args) {
-        switch (args.COLOR) {
-        case BoostColorLabel.ANY:
-            if (Object.keys(BoostColor).find(key => BoostColor[key])
-                .toLowerCase() !== this.getColor()) {
-                if (this.getColor() === this._peripheral._sensors.previousColor) {
-                    return false;
-                }
-                this._peripheral._sensors.previousColor = this.getColor();
-                return true;
-            }
-            break;
-        default:
-            return this.getColor() === args.COLOR;
+        if (args.COLOR === BoostColor.ANY) {
+            // For "any" color, return true if the color is not "none", and
+            // the color is different from the previous color detected. This
+            // allows the hat to trigger when the color changes from one color
+            // to another.
+            return this._peripheral.color !== BoostColor.NONE &&
+                this._peripheral.color !== this._peripheral.previousColor;
         }
+
+        return args.COLOR === this._peripheral.color;
+    }
+
+    /**
+     * A boolean reporter function, for whether the vision sensor is detecting
+     * a certain color.
+     * @param {object} args - the block's arguments.
+     * @return {boolean} - true when the color sensor senses the specified color.
+     */
+    seeingColor (args) {
+        if (args.COLOR === BoostColor.ANY) {
+            return this._peripheral.color !== BoostColor.NONE;
+        }
+
+        return args.COLOR === this._peripheral.color;
     }
 
     /**
