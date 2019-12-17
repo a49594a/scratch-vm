@@ -174,14 +174,15 @@ class Scratch3PuzzleBlocks {
     };
 
     setResolved(args, util) {
-        var ctx = Blockey.Utils.getContext();
+        var extUtils = this.runtime.extUtils;
+        var ctx = extUtils.getContext();
         if (!ctx.loggedInUser) return;
 
         if (util.runtime.puzzle && !util.runtime.puzzle.preventComplete) {
             util.runtime.emit("MISSION_RESOLVED");
         } else if (ctx.targetType == 'Project' && ctx.target.missionId) {
             if (Blockey.GUI_CONFIG.MODE == 'Editor' && ctx.target.creatorId !== ctx.loggedInUser.id) return;
-            Blockey.Utils.setMissionResolved(ctx.target.missionId, {});
+            extUtils.setMissionResolved(ctx.target.missionId, {});
         }
     };
 

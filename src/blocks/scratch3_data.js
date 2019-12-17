@@ -262,17 +262,18 @@ class Scratch3DataBlocks {
     
     //added by yj
     saveVariable (args, util) {
-        var ctx = Blockey.Utils.getContext();
+        var extUtils = this.runtime.extUtils;
+        if(extUtils.detectAbnormalAction('CLOUD_VARIABLE')) return;
+
+        var ctx = extUtils.getContext();
         if (Blockey.GUI_CONFIG.MODE == 'Editor' && !(ctx.targetType == 'Project' && ctx.loggedInUser && ctx.target.creatorId == ctx.loggedInUser.id)) return;
 
         var variable = util.target.lookupOrCreateVariable(args.VARIABLE.id, args.VARIABLE.name);
         var varname = variable.name;
         var scope = args.LOCATION;
         var varval = variable.value;
-        //var t = new Date().getTime();
-        //var s = Sha1.hash(encodeURIComponent("aerfaying" + Blockey.INIT_DATA.project.id + "var" + varname + varval + scope + t).toLowerCase());
         return new Promise(resolve => {
-            Blockey.Utils.ajax({
+            extUtils.ajax({
                 url: `/WebApi/Projects/${ctx.target.id}/SaveVariable`,
                 loadingStyle: "none",
                 hashStr: '',
@@ -285,13 +286,16 @@ class Scratch3DataBlocks {
     }
 
     loadVariable (args, util) {
-        var ctx = Blockey.Utils.getContext();
+        var extUtils = this.runtime.extUtils;
+        if(extUtils.detectAbnormalAction('CLOUD_VARIABLE')) return;
+
+        var ctx = extUtils.getContext();
 
         var variable = util.target.lookupOrCreateVariable(args.VARIABLE.id, args.VARIABLE.name);
         var varname = variable.name;
         var scope = args.LOCATION;
         return new Promise(resolve => {
-            Blockey.Utils.ajax({
+            extUtils.ajax({
                 url: `/WebApi/Projects/${ctx.target.id}/LoadVariable`,
                 loadingStyle: "none",
                 hashStr: '',
@@ -305,7 +309,10 @@ class Scratch3DataBlocks {
     }
 
     saveList (args, util) {
-        var ctx = Blockey.Utils.getContext();
+        var extUtils = this.runtime.extUtils;
+        if(extUtils.detectAbnormalAction('CLOUD_VARIABLE')) return;
+
+        var ctx = extUtils.getContext();
         if (Blockey.GUI_CONFIG.MODE == 'Editor' && !(ctx.targetType == 'Project' && ctx.loggedInUser && ctx.target.creatorId == ctx.loggedInUser.id)) return;
 
         var variable = util.target.lookupOrCreateVariable(args.LIST.id, args.LIST.name);
@@ -315,7 +322,7 @@ class Scratch3DataBlocks {
         //var t = new Date().getTime();
         //var s = Sha1.hash(encodeURIComponent("aerfaying" + Blockey.INIT_DATA.project.id + "list" + varname + varval + scope + t).toLowerCase());
         return new Promise(resolve => {
-            Blockey.Utils.ajax({
+            extUtils.ajax({
                 url: `/WebApi/Projects/${ctx.target.id}/SaveVariable`,
                 loadingStyle: "none",
                 hashStr: '',
@@ -328,13 +335,16 @@ class Scratch3DataBlocks {
     }
 
     loadList (args, util) {
-        var ctx = Blockey.Utils.getContext();
+        var extUtils = this.runtime.extUtils;
+        if(extUtils.detectAbnormalAction('CLOUD_VARIABLE')) return;
+
+        var ctx = extUtils.getContext();
 
         var variable = util.target.lookupOrCreateVariable(args.LIST.id, args.LIST.name);
         var varname = variable.name;
         var scope = args.LOCATION;
         return new Promise(resolve => {
-            Blockey.Utils.ajax({
+            extUtils.ajax({
                 url: `/WebApi/Projects/${ctx.target.id}/LoadVariable`,
                 loadingStyle: "none",
                 hashStr: '',

@@ -329,7 +329,8 @@ class Scratch3SensingBlocks {
 
     getUsername (args, util) {
         //by yj
-        var loggedInUser = Blockey.Utils.getLoggedInUser();
+        var extUtils = this.runtime.extUtils;
+        var loggedInUser = extUtils.getContext().loggedInUser;
         return loggedInUser?loggedInUser.username:'';
 
         //return util.ioQuery('userData', 'getUsername');

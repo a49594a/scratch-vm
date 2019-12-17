@@ -1,4 +1,5 @@
-﻿const ArgumentType = require('../../extension-support/argument-type');
+﻿const Variable = require('../../engine/variable');
+const ArgumentType = require('../../extension-support/argument-type');
 const BlockType = require('../../extension-support/block-type');
 
 /**
@@ -57,6 +58,22 @@ class Scratch3StringExtBlocks {
                             defaultValue: 97
                         }
                     }
+                },
+                {
+                    opcode: 'serializeToJson',
+                    blockType: BlockType.REPORTER,
+                    text: '转换为JSON'
+                },
+                {
+                    opcode: 'deserializeFromJson',
+                    blockType: BlockType.COMMAND,
+                    text: '读取JSON[STRING]',
+                    arguments: {
+                        STRING: {
+                            type: ArgumentType.STRING,
+                            defaultValue: '{}'
+                        }
+                    }
                 }
             ]
         };
@@ -74,6 +91,40 @@ class Scratch3StringExtBlocks {
         return String.fromCharCode(code);
     };
 
+    serializeToJson(args, util) {
+        var jsonObj = {};
+        var variables = util.target.variables;
+        for (var varId in variables) {
+            var variable = variables[varId];
+            if (variable.type == Variable.SCALAR_TYPE || variable.type == Variable.LIST_TYPE) {
+                jsonObj[variable.name] = variable.value;
+            }
+        }
+        return JSON.stringify(jsonObj);
+    };
+
+    deserializeFromJson(args, util) {
+        var jsonStr = args.STRING;
+        var jsonObj = null;
+        try {
+            jsonObj = JSON.parse(jsonStr);
+        } catch (e) {}
+        if (!jsonObj) return;
+        var variables = util.target.variables;
+        for (var varId in variables) {
+            var variable = variables[varId];
+            var varValue = jsonObj[variable.name]
+            if (varValue == undefined) continue;
+            if (variable.type == Variable.LIST_TYPE && Array.isArray(varValue)) {
+                for (var i = 0; i < varValue.length; i++) {
+                    if (varValue[i] == null) varValue[i] = '';
+                }
+                variable.value = varValue;
+            } else if (variable.type == Variable.SCALAR_TYPE) {
+                variable.value = String(varValue);
+            }
+        }
+    };
 }
 
 module.exports = Scratch3StringExtBlocks;

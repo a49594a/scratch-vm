@@ -15,6 +15,7 @@ const builtinExtensions = {
     // These are the non-core built-in extensions.
     
     //by yj
+    battle: () => require('../extensions/scratch3_battle'),
     stringExt: () => require('../extensions/scratch3_string_ext'),
     puzzle: () => require('../extensions/scratch3_puzzle'),
     community: () => require('../extensions/scratch3_community'),

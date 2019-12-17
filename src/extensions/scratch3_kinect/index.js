@@ -77,8 +77,9 @@ class Scratch3KinectBlocks {
         };
     }
     load() {
+        var extUtils = this.runtime.extUtils;
         var self = this;
-        Blockey.Utils.ajax({
+        extUtils.ajax({
             url: "http://localhost:8080",
             crossDomain: true,
             cache: false,

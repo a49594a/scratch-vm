@@ -112,7 +112,8 @@ class Scratch3CommunityBlocks {
     }
 
     getUserInfo(args, util) {
-        var loggedInUser = Blockey.Utils.getLoggedInUser();
+        var extUtils = this.runtime.extUtils;
+        var loggedInUser = extUtils.getContext().loggedInUser;
         if (!loggedInUser) return "";
         var attr = args.USER_ATTR;
         if (attr == "user id") return loggedInUser.id;
