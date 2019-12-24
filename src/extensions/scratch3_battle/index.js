@@ -6,61 +6,8 @@ const BlockType = require('../../extension-support/block-type');
  * @type {string}
  */
 // eslint-disable-next-line max-len
-const blockIconURI = 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSLlm77lsYJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeD0iMHB4IiB5PSIwcHgiCgkgdmlld0JveD0iMCAwIDEyOCAxMjgiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDEyOCAxMjg7IiB4bWw6c3BhY2U9InByZXNlcnZlIj4KPGc+Cgk8cGF0aCBzdHlsZT0iZmlsbDojRkZGRkZGOyIgZD0iTTEwNy4xLDU2LjVoLTYuOVYzNy44YzAtNS00LjQtOS40LTkuNC05LjRINzIuMXYtNy41QzcxLjUsMTQsNjUuOSw5LDU5LjYsOQoJCWMtNi45LDAtMTEuOSw1LTExLjksMTEuOXY2LjlIMjljLTUuNiwwLTEwLDQuNC0xMCwxMHYxOC4xaDYuOUMzMi44LDU1LjksMzksNjEuNSwzOSw2OWMwLDYuOS01LjYsMTMuMS0xMy4xLDEzLjFIMTl2MTguMQoJCWMwLDQuNCw0LjQsOC44LDkuNCw4LjhoMTguMXYtNi45YzAtNi45LDUuNi0xMy4xLDEzLjEtMTMuMWM2LjksMCwxMy4xLDUuNiwxMy4xLDEzLjF2Ni45aDE4LjFjNSwwLDkuNC00LjQsOS40LTkuNFY4MC45aDYuOQoJCWM2LjksMCwxMS45LTUsMTEuOS0xMS45QzExOSw2MS41LDExNCw1Ni41LDEwNy4xLDU2LjVMMTA3LjEsNTYuNXoiLz4KPC9nPgo8L3N2Zz4K';
-const menuIconURI = 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSLlm77lsYJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeD0iMHB4IiB5PSIwcHgiCgkgdmlld0JveD0iMCAwIDE4IDE4IiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxOCAxODsiIHhtbDpzcGFjZT0icHJlc2VydmUiPgo8Zz4KCTxwYXRoIHN0eWxlPSJmaWxsOiMxMjk2REI7IiBkPSJNMTYuMSw3LjZIMTV2LTNjMC0wLjgtMC43LTEuNS0xLjUtMS41aC0zVjEuOWMtMC4xLTEuMS0xLTEuOS0yLTEuOUM3LjQsMCw2LjYsMC44LDYuNiwxLjlWM2gtMwoJCUMyLjcsMywyLDMuNywyLDQuNnYyLjloMS4xYzEuMSwwLDIuMSwwLjksMi4xLDIuMWMwLDEuMS0wLjksMi4xLTIuMSwyLjFIMnYyLjlDMiwxNS4zLDIuNywxNiwzLjUsMTZoMi45di0xLjEKCQljMC0xLjEsMC45LTIuMSwyLjEtMi4xYzEuMSwwLDIuMSwwLjksMi4xLDIuMVYxNmgyLjljMC44LDAsMS41LTAuNywxLjUtMS41di0zaDEuMWMxLjEsMCwxLjktMC44LDEuOS0xLjkKCQlDMTgsOC40LDE3LjIsNy42LDE2LjEsNy42TDE2LjEsNy42eiIvPgo8L2c+Cjwvc3ZnPgo=';
-
-class FlameMind {
-    constructor() {
-        this._id = '';
-    }
-    create(id, resolve) {
-        return this.connect(id, resolve);
-    }
-    connect(id) {
-        var promise = new Promise(resolve => {
-            this._id = id;
-            resolve();
-        });
-        return promise;
-    }
-    config(options) {
-        var promise = new Promise(resolve => {
-            this._options = options;
-            resolve();
-        });
-        return promise;
-    }
-    replay() {
-        return null;
-    }
-    excute(command) {
-        var extUtils = this.runtime.extUtils;
-        var promise = new Promise(resolve => {
-            extUtils.ajax({
-                url: `http://flamechess.cn/js/1/21/roboth.html?${this._id},${command};`,
-                success: () => {
-                    resolve();
-                }
-            });
-        });
-        return promise;
-    }
-    getId() {
-        return this._id;
-    }
-    getSituation() {
-        var promise = new Promise(resolve => {
-            var r = '';
-            resolve(r);
-        });
-        promise.then(r => r);
-        return promise;
-    }
-}
-
-const battleHandlers = {
-    'FlameMind': new FlameMind()
-};
+const blockIconURI = 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSLlm77lsYJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeD0iMHB4IiB5PSIwcHgiCgkgdmlld0JveD0iLTEzOSA4MSAyMDAgMjAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IC0xMzkgODEgMjAwIDIwMDsiIHhtbDpzcGFjZT0icHJlc2VydmUiPgo8c3R5bGUgdHlwZT0idGV4dC9jc3MiPgoJLnN0MHtmaWxsOiNGRkZGRkY7fQo8L3N0eWxlPgo8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMjAuNCwxNjMuMnY4My4ySC05OC40di0xNy4zYzAtMTEuMyw2LjQtMjEuNSwxNi40LTI2LjZsMjEuMy0xMC42YzYtMyw5LjktOS4yLDkuOS0xNnYtMTguN2wtOC4yLDQuMQoJYy0yLjMsMS4yLTQsMy4zLTQuNyw1LjhsLTQuNCwxNy42Yy0wLjMsMS40LTEuMywyLjUtMi43LDMuMWwtMTEsNC40Yy0xLjEsMC40LTIuNCwwLjQtMy41LTAuMWwtMjIuNC05LjljLTEuNi0wLjctMi42LTIuMy0yLjYtNC4xCgl2LTU4LjhjMC0yLjQsMC45LTQuNiwyLjYtNi4zbDMuMy0zLjNsLTUuMy0xMC42Yy0wLjQtMC45LTAuNy0xLjgtMC43LTIuOGMwLTIuNSwyLTQuNSw0LjUtNC41aDU1Qy0xMS41LDkxLjgsMjAuNCwxMjMuOCwyMC40LDE2My4yCgl6IE0yNy45LDI1Mi4zaC0xMzMuOGMtMi41LDAtNC41LDItNC41LDQuNXY4LjljMCwyLjUsMiw0LjUsNC41LDQuNUgyNy45YzIuNSwwLDQuNS0yLDQuNS00LjV2LTguOQoJQzMyLjMsMjU0LjMsMzAuMywyNTIuMywyNy45LDI1Mi4zeiBNLTkxLDEyNy41Yy00LjEsMC03LjQsMy4zLTcuNCw3LjRzMy4zLDcuNCw3LjQsNy40YzQuMSwwLDcuNC0zLjMsNy40LTcuNFMtODYuOSwxMjcuNS05MSwxMjcuNQoJeiIvPgo8L3N2Zz4=';
+const menuIconURI = 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSLlm77lsYJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeD0iMHB4IiB5PSIwcHgiCgkgdmlld0JveD0iLTEzOSA4MSAyMDAgMjAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IC0xMzkgODEgMjAwIDIwMDsiIHhtbDpzcGFjZT0icHJlc2VydmUiPgo8c3R5bGUgdHlwZT0idGV4dC9jc3MiPgoJLnN0MHtmaWxsOiMxMjk2REI7fQo8L3N0eWxlPgo8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMjAuNCwxNjMuMnY4My4ySC05OC40di0xNy4zYzAtMTEuMyw2LjQtMjEuNSwxNi40LTI2LjZsMjEuMy0xMC42YzYtMyw5LjktOS4yLDkuOS0xNnYtMTguN2wtOC4yLDQuMQoJYy0yLjMsMS4yLTQsMy4zLTQuNyw1LjhsLTQuNCwxNy42Yy0wLjMsMS40LTEuMywyLjUtMi43LDMuMWwtMTEsNC40Yy0xLjEsMC40LTIuNCwwLjQtMy41LTAuMWwtMjIuNC05LjljLTEuNi0wLjctMi42LTIuMy0yLjYtNC4xCgl2LTU4LjhjMC0yLjQsMC45LTQuNiwyLjYtNi4zbDMuMy0zLjNsLTUuMy0xMC42Yy0wLjQtMC45LTAuNy0xLjgtMC43LTIuOGMwLTIuNSwyLTQuNSw0LjUtNC41aDU1Qy0xMS41LDkxLjgsMjAuNCwxMjMuOCwyMC40LDE2My4yCgl6IE0yNy45LDI1Mi4zaC0xMzMuOGMtMi41LDAtNC41LDItNC41LDQuNXY4LjljMCwyLjUsMiw0LjUsNC41LDQuNUgyNy45YzIuNSwwLDQuNS0yLDQuNS00LjV2LTguOQoJQzMyLjMsMjU0LjMsMzAuMywyNTIuMywyNy45LDI1Mi4zeiBNLTkxLDEyNy41Yy00LjEsMC03LjQsMy4zLTcuNCw3LjRzMy4zLDcuNCw3LjQsNy40YzQuMSwwLDcuNC0zLjMsNy40LTcuNFMtODYuOSwxMjcuNS05MSwxMjcuNQoJeiIvPgo8L3N2Zz4=';
 
 /**
  * Host for the Pen-related blocks in Scratch 3.0
@@ -75,7 +22,9 @@ class Scratch3BattleBlocks {
          */
         this.runtime = runtime;
 
-        this._battleHandler = null;
+        this._id = '';
+        this._error = '';
+        this._situation = {};
     }
 
     /**
@@ -87,37 +36,37 @@ class Scratch3BattleBlocks {
             name: 'Battle',
             blockIconURI: blockIconURI,
             menuIconURI: menuIconURI,
-            blocks: [{
+            blocks: [/*{
                     opcode: 'create',
                     blockType: BlockType.COMMAND,
-                    text: '创建[TYPE]战场[ID]',
+                    text: '创建[TYPE]-[PASSWORD]',
                     arguments: {
                         TYPE: {
                             type: ArgumentType.STRING,
                             defaultValue: ' '
                         },
-                        ID: {
+                        PASSWORD: {
                             type: ArgumentType.STRING,
                             defaultValue: ' '
                         }
                     }
-                },
+                },*/
                 {
                     opcode: 'connect',
                     blockType: BlockType.COMMAND,
-                    text: '连接[TYPE]战场[ID]',
+                    text: '连接[ID]-[PASSWORD]',
                     arguments: {
-                        TYPE: {
-                            type: ArgumentType.STRING,
+                        ID: {
+                            type: ArgumentType.NUMBER,
                             defaultValue: ' '
                         },
-                        ID: {
+                        PASSWORD: {
                             type: ArgumentType.STRING,
                             defaultValue: ' '
                         }
                     }
                 },
-                {
+                /*{
                     opcode: 'config',
                     blockType: BlockType.COMMAND,
                     text: '设置[OPTIONS]',
@@ -127,16 +76,22 @@ class Scratch3BattleBlocks {
                             defaultValue: ' '
                         }
                     }
-                },
-                {
-                    opcode: 'replay',
-                    blockType: BlockType.COMMAND,
-                    text: '重新开始'
-                },
+                },*/
                 {
                     opcode: 'excute',
                     blockType: BlockType.COMMAND,
-                    text: '执行命令[COMMAND]',
+                    text: '执行[COMMAND]',
+                    arguments: {
+                        COMMAND: {
+                            type: ArgumentType.STRING,
+                            defaultValue: ' '
+                        }
+                    }
+                },
+                {
+                    opcode: 'refresh',
+                    blockType: BlockType.COMMAND,
+                    text: '刷新',
                     arguments: {
                         COMMAND: {
                             type: ArgumentType.STRING,
@@ -147,7 +102,12 @@ class Scratch3BattleBlocks {
                 {
                     opcode: 'getId',
                     blockType: BlockType.REPORTER,
-                    text: '战场ID'
+                    text: 'ID'
+                },
+                {
+                    opcode: 'getError',
+                    blockType: BlockType.REPORTER,
+                    text: '错误'
                 },
                 {
                     opcode: 'getSituation',
@@ -158,62 +118,95 @@ class Scratch3BattleBlocks {
         };
     }
 
+    _ajax(options) {
+        var self = this;
+        var extUtils = this.runtime.extUtils;
+        var promise = new Promise(resolve => {
+            extUtils.ajax({
+                url: options.url,
+                data: options.data,
+                loadingStyle: 'None',
+                success: (r) => {
+                    if (r.error) {
+                        self._error = r.error;
+                    } else {
+                        self._error = '';
+                        if (r.id) self._id = r.id;
+                        if (r.situation) self._situation = r.situation;
+                        if (options.success) options.success(r);
+                    }
+                    resolve();
+                },
+                error: (e) => {
+                    this._error = '未知服务器错误';
+                }
+            });
+        });
+        return promise;
+    }
+
     create(args, util) {
         var type = args.TYPE;
-        var id = args.ID;
-        var battleHandler = battleHandlers[type];
-        if (!battleHandler) return;
-        var promise = battleHandler.create(id);
-        promise.then(() => {
-            this._battleHandler = battleHandler;
+        var password = args.PASSWORD;
+        return this._ajax({
+            url: `/WebApi/Battles/Create`,
+            data: {
+                type: type,
+                password: password
+            }
         });
-        return promise;
-    };
+    }
 
     connect(args, util) {
-        var type = args.TYPE;
-        var id = args.ID;
-        var battleHandler = battleHandlers[type];
-        var promise = battleHandler.connect(id);
-        promise.then(() => {
-            this._battleHandler = battleHandler;
+        var id = Number(args.ID);
+        var password = args.PASSWORD;
+        return this._ajax({
+            url: `/WebApi/Battles/${id}/Connect`,
+            data: {
+                password: password
+            }
         });
-        return promise;
     };
 
     config(args, util) {
-        var battleHandler = this._battleHandler;
-        if (!battleHandler) return;
+        if (!this._id) return;
         var options = args.OPTIONS;
-        var promise = battleHandler.config(options);
-        return promise;
-    };
-
-    replay(args, util) {
-        var battleHandler = this._battleHandler;
-        if (!battleHandler) return;
-        var promise = battleHandler.replay();
-        return promise;
+        return this._ajax({
+            url: `/WebApi/Battles/${this._id}/Config`,
+            data: {
+                options: options
+            }
+        });
     };
 
     excute(args, util) {
+        if (!this._id) return;
         var command = args.COMMAND;
-        var battleHandler = this._battleHandler;
-        if (!battleHandler) return;
-        var promise = battleHandler.excute(command);
-        return promise;
+        return this._ajax({
+            url: `/WebApi/Battles/${this._id}/Excute`,
+            data: {
+                command: command
+            }
+        });
+    };
+
+    refresh(args, util) {
+        if (!this._id) return;
+        return this._ajax({
+            url: `/WebApi/Battles/${this._id}/Refresh`
+        });
     };
 
     getId(args, util) {
-        var battleHandler = this._battleHandler;
-        return battleHandler ? battleHandler.getId() : '';
+        return this._id;
+    };
+
+    getError(args, util) {
+        return this._error;
     };
 
     getSituation(args, util) {
-        var battleHandler = this._battleHandler;
-        if (!battleHandler) return '';
-        var promise = battleHandler.getSituation();
-        return promise;
+        return JSON.stringify(this._situation);
     };
 }
 
