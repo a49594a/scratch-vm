@@ -315,7 +315,7 @@ class Scratch3DataBlocks {
         var ctx = extUtils.getContext();
         if (Blockey.GUI_CONFIG.MODE == 'Editor' && !(ctx.targetType == 'Project' && ctx.loggedInUser && ctx.target.creatorId == ctx.loggedInUser.id)) return;
 
-        var variable = util.target.lookupOrCreateVariable(args.LIST.id, args.LIST.name);
+        var variable = util.target.lookupOrCreateList(args.LIST.id, args.LIST.name);
         var varname = variable.name;
         var scope = args.LOCATION;
         var varval = JSON.stringify(variable.value);
@@ -340,7 +340,7 @@ class Scratch3DataBlocks {
 
         var ctx = extUtils.getContext();
 
-        var variable = util.target.lookupOrCreateVariable(args.LIST.id, args.LIST.name);
+        var variable = util.target.lookupOrCreateList(args.LIST.id, args.LIST.name);
         var varname = variable.name;
         var scope = args.LOCATION;
         return new Promise(resolve => {
@@ -351,7 +351,10 @@ class Scratch3DataBlocks {
                 data: { type: 'list', name: varname, scope: scope },
                 type: "POST"
             }).done(r => {
-                variable.value = JSON.parse(r.value)||[];
+                try {
+                    var val = JSON.parse(r.value);
+                    variable.value = Array.isArray(val) ? val : [];
+                } catch (e) {}
                 resolve();
             });
         });

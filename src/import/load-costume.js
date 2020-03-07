@@ -269,7 +269,17 @@ const loadCostumeFromAsset = function (costume, runtime, optVersion) {
                 return loadVector_(costume, runtime);
             });
     }
-    return loadBitmap_(costume, runtime, rotationCenter, optVersion);
+    //return loadBitmap_(costume, runtime, rotationCenter, optVersion);
+    //by yj
+    return loadBitmap_(costume, runtime, rotationCenter, optVersion)
+        .catch(error => {
+            log.warn(`Error loading bitmap image: ${error.name}: ${error.message}`);
+            // Use default asset if original fails to load
+            costume.assetId = runtime.storage.defaultAssetId.ImageVector;
+            costume.asset = runtime.storage.get(costume.assetId);
+            costume.md5 = `${costume.assetId}.${AssetType.ImageVector.runtimeFormat}`;
+            return loadVector_(costume, runtime);
+        });
 };
 
 /**
