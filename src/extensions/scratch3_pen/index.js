@@ -820,6 +820,9 @@ class Scratch3PenBlocks {
         ctx.fillText(args.TEXT, 0, 0);
         ctx.restore();
         skin._canvasDirty=true;
+        skin._drawToBuffer();
+        //skin._silhouetteDirty = true;
+        this.runtime.requestRedraw();
     }
     setPenDownMode (args, util) {
         const target = util.target;

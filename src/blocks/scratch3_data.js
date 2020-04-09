@@ -259,8 +259,20 @@ class Scratch3DataBlocks {
         return 200000;
     }
 
-    
     //added by yj
+    _isVarValueChanged(projectId, type, scope, name, value) {
+        if (!this._varValues) this._varValues = {};
+        let hashValue = Sha1.hash(value);
+        let key = projectId + type + scope + name;
+        var lastHashValue = this._varValues[key];
+        if (lastHashValue != hashValue) {
+            this._varValues[key] = hashValue;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     saveVariable (args, util) {
         var extUtils = this.runtime.extUtils;
         if(extUtils.detectAbnormalAction('CLOUD_VARIABLE')) return;
@@ -272,6 +284,7 @@ class Scratch3DataBlocks {
         var varname = variable.name;
         var scope = args.LOCATION;
         var varval = variable.value;
+        if (!this._isVarValueChanged(ctx.target.id, 'var', scope, varname, varval)) return;
         return new Promise(resolve => {
             extUtils.ajax({
                 url: `/WebApi/Projects/${ctx.target.id}/SaveVariable`,
@@ -302,15 +315,20 @@ class Scratch3DataBlocks {
                 data: { type: 'var', name: varname, scope: scope },
                 type: "POST"
             }).done(r => {
-                variable.value = r.value||'';
+                if (r.error) {
+                    extUtils.Alerter.info(r.error);
+                }
+                else{
+                    variable.value = r.value || '';
+                }
                 resolve();
             });
         });
     }
 
-    saveList (args, util) {
+    saveList(args, util) {
         var extUtils = this.runtime.extUtils;
-        if(extUtils.detectAbnormalAction('CLOUD_VARIABLE')) return;
+        if (extUtils.detectAbnormalAction('CLOUD_VARIABLE')) return;
 
         var ctx = extUtils.getContext();
         if (Blockey.GUI_CONFIG.MODE == 'Editor' && !(ctx.targetType == 'Project' && ctx.loggedInUser && ctx.target.creatorId == ctx.loggedInUser.id)) return;
@@ -319,14 +337,18 @@ class Scratch3DataBlocks {
         var varname = variable.name;
         var scope = args.LOCATION;
         var varval = JSON.stringify(variable.value);
-        //var t = new Date().getTime();
-        //var s = Sha1.hash(encodeURIComponent("aerfaying" + Blockey.INIT_DATA.project.id + "list" + varname + varval + scope + t).toLowerCase());
+        if (!this._isVarValueChanged(ctx.target.id, 'list', scope, varname, varval)) return;
         return new Promise(resolve => {
             extUtils.ajax({
                 url: `/WebApi/Projects/${ctx.target.id}/SaveVariable`,
                 loadingStyle: "none",
                 hashStr: '',
-                data: { type: 'list', name: varname, value: varval, scope: scope },
+                data: {
+                    type: 'list',
+                    name: varname,
+                    value: varval,
+                    scope: scope
+                },
                 type: "POST"
             }).done(r => {
                 resolve();
@@ -351,10 +373,15 @@ class Scratch3DataBlocks {
                 data: { type: 'list', name: varname, scope: scope },
                 type: "POST"
             }).done(r => {
-                try {
-                    var val = JSON.parse(r.value);
-                    variable.value = Array.isArray(val) ? val : [];
-                } catch (e) {}
+                if (r.error) {
+                    extUtils.Alerter.info(r.error);
+                }
+                else{
+                    try {
+                        var val = JSON.parse(r.value);
+                        variable.value = Array.isArray(val) ? val : [];
+                    } catch (e) {}
+                }
                 resolve();
             });
         });

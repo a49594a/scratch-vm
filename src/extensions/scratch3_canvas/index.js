@@ -736,6 +736,7 @@ class Scratch3CanvasBlocks {
         //penSkin.updateSilhouette();
         penSkin._canvas.getContext("2d").drawImage(this._canvas, 0, 0);
         penSkin._canvasDirty = true;
+        penSkin._silhouetteDirty = true;
     }
 }
 

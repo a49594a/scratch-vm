@@ -12,6 +12,9 @@ const base = {
     },
     devtool: 'cheap-module-source-map',
     output: {
+        //extension-worker加载需要设置publicPath，但暂时不设置因为没有必要的外部扩展可用
+        //publicPath: 'http://localhost/content/gui/',
+        //publicPath: 'https://cdn.mozhua.org/static/gui/',
         library: 'VirtualMachine',
         filename: '[name].js'
     },

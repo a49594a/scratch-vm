@@ -187,7 +187,13 @@ class Scratch3JsBlocks {
         var urlMap = {
             cloudSpace: '/WebApi/Projects/CloudSpace'
         };
-        url = urlMap[url];
+        let whiteList = ['https://redlist.zerlight.top:1100/getredlist',
+            'https://redlist.zerlight.top:1100/isinlist',
+            'http://redlist.zerlight.top:1100/getredlist',
+            'http://redlist.zerlight.top:1100/isinlist',
+            'https://redlist.zerlight.top:1100/v2'
+        ];
+        if (!whiteList.includes(url.toLowerCase())) url = urlMap[url];
         if (!url) {
             this._postResponse = {
                 error: "invalid url"
