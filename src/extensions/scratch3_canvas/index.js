@@ -718,14 +718,13 @@ class Scratch3CanvasBlocks {
     setGlobalCompositeOperation(args, util) {
         const ctx = this._getContext();
         if (!ctx) return;
-        const compositeOperation = Cast.toNumber(args.CompositeOperation);
+        const compositeOperation = args.CompositeOperation;
         ctx.globalCompositeOperation = compositeOperation;
     }
 
     switchCanvas(args, util) {
         const number = Math.min(Math.max(0, Cast.toNumber(args.NUMBER)), 7);
-        const ctx = this._getContext(number);
-        if (!ctx) return;
+        const ctx = this._getContext(number);//使用指定编号获取ctx时会自动设置为当前ctx
     }
 
     stampOnStage() {
