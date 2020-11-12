@@ -98,8 +98,9 @@ class Scratch3PuzzleBlocks {
         tempCanvas.height = h;
 
         this.testScratch = tempCanvas.getContext("2d");
-        this.testScratch.drawImage(penSkin._canvas, 0, 0);
-
+        //this.testScratch.drawImage(penSkin._canvas, 0, 0);
+        this.testScratch.putImageData(penSkin._silhouetteImageData, 0, 0);
+        
         var canvasData = this.testScratch.getImageData(0, 0, w, h);
         for (var x = 0; x < canvasData.width; x++) {
             for (var y = 0; y < canvasData.height; y++) {
@@ -120,16 +121,17 @@ class Scratch3PuzzleBlocks {
 
         penSkin.clear();
         watermarkSkin.clear();
-        watermarkSkin._canvas.getContext("2d").putImageData(canvasData, 0, 0);
-        watermarkSkin._canvasDirty = true;
+        watermarkSkin._setTexture(canvasData);
+        this.runtime.requestRedraw();
     };
 
     _setWatermarkVisible(visible) {
         if (this.runtime.penSkinId == undefined) return;
         if (this.runtime.renderer) {
-            this.runtime.renderer.updateDrawableProperties(this.runtime.watermarkDrawableId, {
+            /*this.runtime.renderer.updateDrawableProperties(this.runtime.watermarkDrawableId, {
                 visible: visible
-            });
+            });*/
+            this.runtime.renderer.updateDrawableVisible(this.runtime.watermarkDrawableId, visible);
             this.runtime.requestRedraw();
         }
     };
@@ -155,7 +157,7 @@ class Scratch3PuzzleBlocks {
         var h = size[1];
 
         var data1 = this.testScratch.getImageData(0, 0, w, h).data;
-        var data2 = penSkin._canvas.getContext("2d").getImageData(0, 0, w, h).data;
+        var data2 = penSkin._silhouetteImageData.data;
         var count = 0;
         for (var i = 0; i < data1.length; i++) {
             if (i % 4 == 3 && data1[i] != data2[i] && !(data1[i] > 0 && data2[i] > 0)) {

@@ -467,6 +467,11 @@ class Scratch3CanvasBlocks {
             this._canvas = tmpCanvas.canvas;
             this._ctx = tmpCanvas.ctx;
             this._bufferedImages = {};
+
+            this._skinId = this.runtime.renderer.createBitmapSkin(this._createCanvas().canvas, 1);
+            this._drawableId = this.runtime.renderer.createDrawable(StageLayering.PEN_LAYER);
+            this.runtime.renderer.updateDrawableSkinId(this._drawableId, this._skinId);
+            this.runtime.renderer.updateDrawableVisible(this._drawableId, false);
         }
         if (idx != null) {
             var tmpCanvas = this._canvasList[idx];
@@ -724,18 +729,18 @@ class Scratch3CanvasBlocks {
 
     switchCanvas(args, util) {
         const number = Math.min(Math.max(0, Cast.toNumber(args.NUMBER)), 7);
-        const ctx = this._getContext(number);//使用指定编号获取ctx时会自动设置为当前ctx
+        const ctx = this._getContext(number); //使用指定编号获取ctx时会自动设置为当前ctx
     }
 
     stampOnStage() {
         const ctx = this._getContext();
         if (!ctx) return;
 
-        var penSkin = this.runtime.renderer._allSkins[this.runtime.penSkinId];
-        //penSkin.updateSilhouette();
-        penSkin._canvas.getContext("2d").drawImage(this._canvas, 0, 0);
-        penSkin._canvasDirty = true;
-        penSkin._silhouetteDirty = true;
+        var imageData = ctx.getImageData(0, 0, 480, 360);
+        var skin = this.runtime.renderer._allSkins[this._skinId];
+        skin._setTexture(imageData);
+        this.runtime.renderer.penStamp(this.runtime.penSkinId, this._drawableId);
+        this.runtime.requestRedraw();
     }
 }
 

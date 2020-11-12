@@ -137,6 +137,15 @@ class Scratch3PenBlocks {
             this.runtime.renderer.updateDrawableSkinId(this._penDrawableId, this._penSkinId);
             //this.runtime.renderer.updateDrawableProperties(this._penDrawableId, {skinId: this._penSkinId});
 
+            //added by yj text print layer
+            this._printCanvas = document.createElement("canvas");
+            this._printCanvas.width = 480;
+            this._printCanvas.height = 360;
+            this._printSkinId = this.runtime.renderer.createBitmapSkin(this._printCanvas, 1);
+            this._printDrawableId = this.runtime.renderer.createDrawable(StageLayering.PEN_LAYER);
+            this.runtime.renderer.updateDrawableSkinId(this._printDrawableId, this._printSkinId);
+            this.runtime.renderer.updateDrawableVisible(this._printDrawableId, false);
+
             //added by yj watermark layer
             this._watermarkSkinId = this.runtime.renderer.createPenSkin();
             this._watermarkDrawableId = this.runtime.renderer.createDrawable(StageLayering.PEN_LAYER);
@@ -814,11 +823,14 @@ class Scratch3PenBlocks {
         const penAttributes = this._getPenState(util.target).penAttributes;
         const penSkinId = this._getPenLayerID();
         const skin = util.target.runtime.renderer._allSkins[penSkinId];
-        var ctx = skin._canvas.getContext("2d");
+
+        var w = util.target.runtime.constructor.STAGE_WIDTH;
+        var h = util.target.runtime.constructor.STAGE_HEIGHT
+        var ctx = this._printCanvas.getContext("2d");
+        ctx.clearRect(0, 0, w, h);
         ctx.save();
-        ctx.translate(util.target.runtime.constructor.STAGE_WIDTH/2+ util.target.x, util.target.runtime.constructor.STAGE_HEIGHT/2 - util.target.y + Math.max(12, penAttributes.diameter));
+        ctx.translate(w / 2 + util.target.x, h / 2 - util.target.y + Math.max(12, penAttributes.diameter));
         ctx.font = 'normal ' + Math.max(12, penAttributes.diameter) + 'px Arial';
-        skin._setAttributes(ctx,penAttributes);
         ctx.fillStyle = ctx.strokeStyle;
         ctx.rotate(2 * Math.PI * (util.target.direction - 90) / 360);
 
@@ -831,9 +843,12 @@ class Scratch3PenBlocks {
 
         ctx.fillText(args.TEXT, 0, 0);
         ctx.restore();
-        skin._canvasDirty=true;
-        skin._drawToBuffer();
-        //skin._silhouetteDirty = true;
+
+        const printSkin = util.target.runtime.renderer._allSkins[this._printSkinId];
+        var imageData = ctx.getImageData(0, 0, w, h);
+        printSkin._setTexture(imageData);
+        this.runtime.renderer.penStamp(penSkinId, this._printDrawableId);
+
         this.runtime.requestRedraw();
     }
     setPenDownMode (args, util) {
