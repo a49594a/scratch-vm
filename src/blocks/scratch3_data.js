@@ -286,13 +286,23 @@ class Scratch3DataBlocks {
         var varval = variable.value;
         if (!this._isVarValueChanged(ctx.target.id, 'var', scope, varname, varval)) return;
         return new Promise(resolve => {
-            extUtils.ajax({
-                url: `/WebApi/Projects/${ctx.target.id}/SaveVariable`,
-                loadingStyle: "none",
-                hashStr: '',
-                data: { type: 'var', name: varname, value: varval, scope: scope },
-                type: "POST"
-            }).done(r => {
+            extUtils.fetchAccessToken(ctx.loggedInUser).then(accessToken => {
+                extUtils.ajax({
+                    url: `${Blockey.CLOUD_SERVER||'/WebApi'}/Projects/${ctx.target.id}/SaveVariable`,
+                    loadingStyle: "none",
+                    hashStr: '',
+                    data: {
+                        accessToken: accessToken,
+                        type: 'var',
+                        name: varname,
+                        value: varval,
+                        scope: scope
+                    },
+                    type: "POST"
+                }).done(r => {
+                    resolve();
+                });
+            }).catch(e => {
                 resolve();
             });
         });
@@ -308,19 +318,27 @@ class Scratch3DataBlocks {
         var varname = variable.name;
         var scope = args.LOCATION;
         return new Promise(resolve => {
-            extUtils.ajax({
-                url: `/WebApi/Projects/${ctx.target.id}/LoadVariable`,
-                loadingStyle: "none",
-                hashStr: '',
-                data: { type: 'var', name: varname, scope: scope },
-                type: "POST"
-            }).done(r => {
-                if (r.error) {
-                    extUtils.Alerter.info(r.error);
-                }
-                else{
-                    variable.value = r.value || '';
-                }
+            extUtils.fetchAccessToken(ctx.loggedInUser).then(accessToken => {
+                extUtils.ajax({
+                    url: `${Blockey.CLOUD_SERVER||'/WebApi'}/Projects/${ctx.target.id}/LoadVariable`,
+                    loadingStyle: "none",
+                    hashStr: '',
+                    data: {
+                        accessToken: accessToken,
+                        type: 'var',
+                        name: varname,
+                        scope: scope
+                    },
+                    type: "POST"
+                }).done(r => {
+                    if (r.error) {
+                        extUtils.Alerter.info(r.error);
+                    } else {
+                        variable.value = r.value || '';
+                    }
+                    resolve();
+                });
+            }).catch(e => {
                 resolve();
             });
         });
@@ -339,18 +357,23 @@ class Scratch3DataBlocks {
         var varval = JSON.stringify(variable.value);
         if (!this._isVarValueChanged(ctx.target.id, 'list', scope, varname, varval)) return;
         return new Promise(resolve => {
-            extUtils.ajax({
-                url: `/WebApi/Projects/${ctx.target.id}/SaveVariable`,
-                loadingStyle: "none",
-                hashStr: '',
-                data: {
-                    type: 'list',
-                    name: varname,
-                    value: varval,
-                    scope: scope
-                },
-                type: "POST"
-            }).done(r => {
+            extUtils.fetchAccessToken(ctx.loggedInUser).then(accessToken => {
+                extUtils.ajax({
+                    url: `${Blockey.CLOUD_SERVER||'/WebApi'}/Projects/${ctx.target.id}/SaveVariable`,
+                    loadingStyle: "none",
+                    hashStr: '',
+                    data: {
+                        accessToken: accessToken,
+                        type: 'list',
+                        name: varname,
+                        value: varval,
+                        scope: scope
+                    },
+                    type: "POST"
+                }).done(r => {
+                    resolve();
+                });
+            }).catch(e => {
                 resolve();
             });
         });
@@ -366,22 +389,30 @@ class Scratch3DataBlocks {
         var varname = variable.name;
         var scope = args.LOCATION;
         return new Promise(resolve => {
-            extUtils.ajax({
-                url: `/WebApi/Projects/${ctx.target.id}/LoadVariable`,
-                loadingStyle: "none",
-                hashStr: '',
-                data: { type: 'list', name: varname, scope: scope },
-                type: "POST"
-            }).done(r => {
-                if (r.error) {
-                    extUtils.Alerter.info(r.error);
-                }
-                else{
-                    try {
-                        var val = JSON.parse(r.value);
-                        variable.value = Array.isArray(val) ? val : [];
-                    } catch (e) {}
-                }
+            extUtils.fetchAccessToken(ctx.loggedInUser).then(accessToken => {
+                extUtils.ajax({
+                    url: `${Blockey.CLOUD_SERVER||'/WebApi'}/Projects/${ctx.target.id}/LoadVariable`,
+                    loadingStyle: "none",
+                    hashStr: '',
+                    data: {
+                        accessToken: accessToken,
+                        type: 'list',
+                        name: varname,
+                        scope: scope
+                    },
+                    type: "POST"
+                }).done(r => {
+                    if (r.error) {
+                        extUtils.Alerter.info(r.error);
+                    } else {
+                        try {
+                            var val = JSON.parse(r.value);
+                            variable.value = Array.isArray(val) ? val : [];
+                        } catch (e) {}
+                    }
+                    resolve();
+                });
+            }).catch(e => {
                 resolve();
             });
         });

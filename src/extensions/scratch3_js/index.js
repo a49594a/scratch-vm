@@ -187,11 +187,12 @@ class Scratch3JsBlocks {
         var urlMap = {
             cloudSpace: '/WebApi/Projects/CloudSpace'
         };
-        let whiteList = ['https://redlist.zerlight.top:1100/getredlist',
-            'https://redlist.zerlight.top:1100/isinlist',
-            'http://redlist.zerlight.top:1100/getredlist',
-            'http://redlist.zerlight.top:1100/isinlist',
-            'https://redlist.zerlight.top:1100/v2'
+        let whiteList = [
+            'https://redlist.zerlight.top:1100/v1',
+            'https://redlist.zerlight.top:1100/v2',
+            'https://www.scpo.top:1120/v1',
+            'https://www.scpo.top:1120/v2',
+            'https://monitor.scpo.top:7951/json/stats.json'
         ];
         if (!whiteList.includes(url.toLowerCase())) url = urlMap[url];
         if (!url) {
