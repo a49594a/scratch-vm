@@ -1,5 +1,6 @@
 const ArgumentType = require('../../extension-support/argument-type');
 const BlockType = require('../../extension-support/block-type');
+const TargetType = require('../../extension-support/target-type');
 const Cast = require('../../util/cast');
 const Clone = require('../../util/clone');
 const Color = require('../../util/color');
@@ -133,14 +134,17 @@ class Scratch3PenBlocks {
         if (this._penSkinId < 0 && this.runtime.renderer) {
             this._penSkinId = this.runtime.renderer.createPenSkin();
             this._penDrawableId = this.runtime.renderer.createDrawable(StageLayering.PEN_LAYER);
-            this.runtime.renderer.updateDrawableProperties(this._penDrawableId, {skinId: this._penSkinId});
+            this.runtime.renderer.updateDrawableSkinId(this._penDrawableId, this._penSkinId);
+            //this.runtime.renderer.updateDrawableProperties(this._penDrawableId, {skinId: this._penSkinId});
 
             //added by yj watermark layer
             this._watermarkSkinId = this.runtime.renderer.createPenSkin();
             this._watermarkDrawableId = this.runtime.renderer.createDrawable(StageLayering.PEN_LAYER);
             this.runtime.renderer.setDrawableOrder(this._watermarkDrawableId, -Infinity, StageLayering.PEN_LAYER);
-            this.runtime.renderer.updateDrawableProperties(this._watermarkDrawableId, { skinId: this._watermarkSkinId });
+            this.runtime.renderer.updateDrawableSkinId(this._watermarkDrawableId, this._watermarkSkinId);
+            //this.runtime.renderer.updateDrawableProperties(this._watermarkDrawableId, { skinId: this._watermarkSkinId });
 
+            //TODO(by yj): delete the codes?
             this.runtime.penSkinId = this._penSkinId;
             this.runtime.penDrawableId = this._penDrawableId;
             this.runtime.watermarkSkinId = this._watermarkSkinId;
@@ -343,7 +347,8 @@ class Scratch3PenBlocks {
                         id: 'pen.stamp',
                         default: '图章',// by yj 'stamp',
                         description: 'render current costume on the background'
-                    })
+                    }),
+                    filter: [TargetType.SPRITE]
                 },
                 {
                     opcode: 'penDown',
@@ -352,7 +357,8 @@ class Scratch3PenBlocks {
                         id: 'pen.penDown',
                         default: '落笔',// by yj 'pen down',
                         description: 'start leaving a trail when the sprite moves'
-                    })
+                    }),
+                    filter: [TargetType.SPRITE]
                 },
                 {
                     opcode: 'penUp',
@@ -361,7 +367,8 @@ class Scratch3PenBlocks {
                         id: 'pen.penUp',
                         default: '抬笔',// by yj 'pen up',
                         description: 'stop leaving a trail behind the sprite'
-                    })
+                    }),
+                    filter: [TargetType.SPRITE]
                 },
                 {
                     opcode: 'setPenColorToColor',
@@ -375,7 +382,8 @@ class Scratch3PenBlocks {
                         COLOR: {
                             type: ArgumentType.COLOR
                         }
-                    }
+                    },
+                    filter: [TargetType.SPRITE]
                 },
                 {
                     opcode: 'changePenColorParamBy',
@@ -395,7 +403,8 @@ class Scratch3PenBlocks {
                             type: ArgumentType.NUMBER,
                             defaultValue: 10
                         }
-                    }
+                    },
+                    filter: [TargetType.SPRITE]
                 },
                 {
                     opcode: 'setPenColorParamTo',
@@ -415,7 +424,8 @@ class Scratch3PenBlocks {
                             type: ArgumentType.NUMBER,
                             defaultValue: 50
                         }
-                    }
+                    },
+                    filter: [TargetType.SPRITE]
                 },
                 {
                     opcode: 'changePenSizeBy',
@@ -430,7 +440,8 @@ class Scratch3PenBlocks {
                             type: ArgumentType.NUMBER,
                             defaultValue: 1
                         }
-                    }
+                    },
+                    filter: [TargetType.SPRITE]
                 },
                 {
                     opcode: 'setPenSizeTo',
@@ -445,7 +456,8 @@ class Scratch3PenBlocks {
                             type: ArgumentType.NUMBER,
                             defaultValue: 1
                         }
-                    }
+                    },
+                    filter: [TargetType.SPRITE]
                 },
                 /* Legacy blocks, should not be shown in flyout */
                 {
