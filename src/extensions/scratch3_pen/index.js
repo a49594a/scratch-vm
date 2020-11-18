@@ -820,7 +820,9 @@ class Scratch3PenBlocks {
 
     //added by yj
     print (args, util) {
-        const penAttributes = this._getPenState(util.target).penAttributes;
+        const target = util.target;
+        const penState = this._getPenState(target);
+        const penAttributes = penState.penAttributes;
         const penSkinId = this._getPenLayerID();
         const skin = util.target.runtime.renderer._allSkins[penSkinId];
 
@@ -831,6 +833,12 @@ class Scratch3PenBlocks {
         ctx.save();
         ctx.translate(w / 2 + util.target.x, h / 2 - util.target.y + Math.max(12, penAttributes.diameter));
         ctx.font = 'normal ' + Math.max(12, penAttributes.diameter) + 'px Arial';
+
+        ctx.strokeStyle = Color.rgbToHex(Color.hsvToRgb({
+            h: penState.color * 360 / 100,
+            s: penState.saturation / 100,
+            v: penState.brightness / 100
+        }));
         ctx.fillStyle = ctx.strokeStyle;
         ctx.rotate(2 * Math.PI * (util.target.direction - 90) / 360);
 
