@@ -131,7 +131,7 @@ class Scratch3CommunityBlocks {
     }
 
     isValidUrl(url) {
-        var regex = /^((https|http)?:\/\/(www\.aerfaying\.com|aerfaying\.com|mozhua\.aerfaying\.com)|(\/[^\/]))/;
+        var regex = /^((https|http)?:\/\/(gitblock\.cn|aerfaying\.com)|(\/[^\/]))/;
         return regex.test(url.toLowerCase());
     }
 
@@ -139,7 +139,7 @@ class Scratch3CommunityBlocks {
         if (this.isValidUrl(args.URL)) {
             window.open(args.URL);
         } else {
-            alert("该指令块只能用于打开魔抓社区的页面");
+            alert("该指令块仅可打开gitblock.cn或aerfaying.com的页面");
         }
     }
 
@@ -147,7 +147,7 @@ class Scratch3CommunityBlocks {
         if (this.isValidUrl(args.URL)) {
             window.location = args.URL;
         } else {
-            alert("该指令块只能用于打开魔抓社区的页面");
+            alert("该指令块仅可打开gitblock.cn或aerfaying.com的页面");
         }
     }
 

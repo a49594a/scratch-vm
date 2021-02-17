@@ -65,7 +65,13 @@ class Scratch3PuzzleBlocks {
                 {
                     opcode: 'setResolved',
                     blockType: BlockType.COMMAND,
-                    text: '将任务设定为已完成'
+                    text: '将任务设定为已完成 [SCORE]',
+                    arguments: {
+                        SCORE: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: '1'
+                        }
+                    }
                 },
                 {
                     opcode: 'setSpriteTracker',
@@ -74,7 +80,7 @@ class Scratch3PuzzleBlocks {
                     arguments: {
                         TRACKER: {
                             type: ArgumentType.STRING,
-                            defaultValue: ''
+                            defaultValue: 'YourBlockName'
                         }
                     }
                 },
@@ -100,7 +106,7 @@ class Scratch3PuzzleBlocks {
         this.testScratch = tempCanvas.getContext("2d");
         //this.testScratch.drawImage(penSkin._canvas, 0, 0);
         this.testScratch.putImageData(penSkin._silhouetteImageData, 0, 0);
-        
+
         var canvasData = this.testScratch.getImageData(0, 0, w, h);
         for (var x = 0; x < canvasData.width; x++) {
             for (var y = 0; y < canvasData.height; y++) {
@@ -179,12 +185,16 @@ class Scratch3PuzzleBlocks {
         var extUtils = this.runtime.extUtils;
         var ctx = extUtils.getContext();
         if (!ctx.loggedInUser) return;
-
+        let score = Math.max(0, Math.min(1, args.SCORE == undefined ? 1 : args.SCORE));
         if (util.runtime.puzzle && !util.runtime.puzzle.preventComplete) {
-            util.runtime.emit("MISSION_RESOLVED");
+            util.runtime.emit("MISSION_RESOLVED", {
+                score: score
+            });
         } else if (ctx.targetType == 'Project' && ctx.target.missionId) {
             if (Blockey.GUI_CONFIG.MODE == 'Editor' && ctx.target.creatorId !== ctx.loggedInUser.id) return;
-            extUtils.setMissionResolved(ctx.target.missionId, {});
+            extUtils.setMissionResolved(ctx.target.missionId, {
+                score: score
+            });
         }
     };
 
