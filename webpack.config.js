@@ -132,7 +132,7 @@ module.exports = [
             hints: false
         },
         plugins: base.plugins.concat([
-            new CopyWebpackPlugin([{
+            new CopyWebpackPlugin({patterns:[{
                 from: 'node_modules/scratch-blocks/media',
                 to: 'media'
             }, {
@@ -143,7 +143,7 @@ module.exports = [
                 from: 'node_modules/scratch-svg-renderer/dist/web'
             }, {
                 from: 'src/playground'
-            }])
+            }]})
         ])
     })
 ];
