@@ -57,22 +57,28 @@ class Scratch3KinectBlocks {
                 }
             }, ],
             menus: {
-                PLAYER: ['P1', 'P2'],
-                SENSOR: ['AnkleLeft_X', 'AnkleLeft_Y', 'AnkleRight_X', 'AnkleRight_Y',
-                    'ElbowLeft_X', 'ElbowLeft_Y', 'ElbowRight_X', 'ElbowRight_Y',
-                    'FootLeft_X', 'FootLeft_Y', 'FootRight_X', 'FootRight_Y',
-                    'HandLeft_X', 'HandLeft_Y', 'HandRight_X', 'HandRight_Y',
-                    'HandTipLeft_X', 'HandTipLeft_Y', 'HandTipRight_X', 'HandTipRight_Y',
-                    'Head_X', 'Head_Y',
-                    'HipLeft_X', 'HipLeft_Y', 'HipRight_X', 'HipRight_Y',
-                    'KneeLeft_X', 'KneeLeft_Y', 'KneeRight_X', 'KneeRight_Y',
-                    'Neck_X', 'Neck_Y',
-                    'ShoulderLeft_X', 'ShoulderLeft_Y', 'ShoulderRight_X', 'ShoulderRight_Y',
-                    'SpineBase_X', 'SpineBase_Y', 'SpineMid_X', 'SpineMid_Y', 'SpineShoulder_X', 'SpineShoulder_Y',
-                    'ThumbLeft_X', 'ThumbLeft_Y', 'ThumbRight_X', 'ThumbRight_Y',
-                    'WristLeft_X', 'WristLeft_Y', 'WristRight_X', 'WristRight_Y',
-                    'HandLeftState', 'HandRightState',
-                ]
+                PLAYER: {
+                    acceptReporters: true,
+                    items: ['P1', 'P2']
+                },
+                SENSOR: {
+                    acceptReporters: true,
+                    items: ['AnkleLeft_X', 'AnkleLeft_Y', 'AnkleRight_X', 'AnkleRight_Y',
+                        'ElbowLeft_X', 'ElbowLeft_Y', 'ElbowRight_X', 'ElbowRight_Y',
+                        'FootLeft_X', 'FootLeft_Y', 'FootRight_X', 'FootRight_Y',
+                        'HandLeft_X', 'HandLeft_Y', 'HandRight_X', 'HandRight_Y',
+                        'HandTipLeft_X', 'HandTipLeft_Y', 'HandTipRight_X', 'HandTipRight_Y',
+                        'Head_X', 'Head_Y',
+                        'HipLeft_X', 'HipLeft_Y', 'HipRight_X', 'HipRight_Y',
+                        'KneeLeft_X', 'KneeLeft_Y', 'KneeRight_X', 'KneeRight_Y',
+                        'Neck_X', 'Neck_Y',
+                        'ShoulderLeft_X', 'ShoulderLeft_Y', 'ShoulderRight_X', 'ShoulderRight_Y',
+                        'SpineBase_X', 'SpineBase_Y', 'SpineMid_X', 'SpineMid_Y', 'SpineShoulder_X', 'SpineShoulder_Y',
+                        'ThumbLeft_X', 'ThumbLeft_Y', 'ThumbRight_X', 'ThumbRight_Y',
+                        'WristLeft_X', 'WristLeft_Y', 'WristRight_X', 'WristRight_Y',
+                        'HandLeftState', 'HandRightState',
+                    ]
+                }
             }
         };
     }
